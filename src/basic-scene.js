@@ -19,6 +19,7 @@ export class BasicScene extends HTMLElement {
 
         this.renderer = new THREE.WebGLRenderer({
             antialias: true,
+            alpha: true,
         });
 
         this.renderer.setPixelRatio(
@@ -67,7 +68,7 @@ export class BasicScene extends HTMLElement {
         this.scene.add(this.ambientLight);
 
         // scene background white
-        this.scene.background = new THREE.Color(0xffffff);
+        // this.scene.background = new THREE.Color(0xffffff);
         this.directionalLight = new THREE.DirectionalLight(0xffffff, 1);
         this.directionalLight.position.set(5, 10, 7.5);
         this.scene.add(this.directionalLight);
