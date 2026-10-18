@@ -230,6 +230,7 @@ class WalkThroughScene extends BasicScene {
     beforeRender() {
         this.updateMotion();
         this.updateCamera();
+        this.carousel?.positionCrabs(performance.now() * 0.001);
     }
 
 
