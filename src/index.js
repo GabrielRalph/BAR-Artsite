@@ -2,9 +2,11 @@ import { BasicScene } from "./basic-scene";
 import { Carousel, Crab } from "./crab";
 import * as THREE from "three";
 import { Keyboard } from "./keyboard";
+import { TouchControls } from "./touch-controls";
 
 class WalkThroughScene extends BasicScene {
 
+    lastT = null;
     yaw = 0;
     pitch = 0;
     playerSpeedMax = 0.05;
@@ -15,6 +17,8 @@ class WalkThroughScene extends BasicScene {
     bobFrequency = 0.03;
     bobAmountY = 0.03;
     bobAmountZ = 0.03;
+
+    touchSpeedScale = 300;
     
     playerYOffset = 0;
     playerYVelocity = 0;
@@ -25,11 +29,26 @@ class WalkThroughScene extends BasicScene {
     constructor() {
         super();
         this.keyboard = new Keyboard();
-        this.keyboard.onKeyDown(" ", () => {
-            if (this.playerYOffset === this.floorY) {
-                this.playerYVelocity = 0.1; // Jump velocity
-            }
-        });
+        this.keyboard.onKeyDown(" ", () => this.jump());
+
+        this.touch = new TouchControls(this);
+        this.touch.onLook((dx, dy) => this.look(dx, dy));
+        this.touch.onJump(() => this.jump());
+    }
+
+    jump() {
+        if (this.playerYOffset === this.floorY) {
+            this.playerYVelocity = 0.1; // Jump velocity
+        }
+    }
+
+    look(deltaYaw, deltaPitch) {
+        this.yaw -= deltaYaw;
+        this.pitch -= deltaPitch;
+
+        // Prevent the camera from flipping upside down.
+        const limit = Math.PI / 2 - 0.01;
+        this.pitch = THREE.MathUtils.clamp(this.pitch, -limit, limit);
     }
 
 
@@ -117,11 +136,18 @@ class WalkThroughScene extends BasicScene {
         this.scene.add(this.carousel.model);
         // this.scene.add(this.crab.model);
 
+        let lastPointerType = "mouse";
+        document.addEventListener('pointerdown', (event) => {
+            lastPointerType = event.pointerType;
+        });
+
         document.body.addEventListener('click', () => {
             if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen()
+                document.documentElement.requestFullscreen().catch(() => {});
             }
-            document.body.requestPointerLock();
+            if (lastPointerType === "mouse") {
+                document.body.requestPointerLock();
+            }
         });
 
         document.addEventListener('mousemove', (event) => {
@@ -130,22 +156,12 @@ class WalkThroughScene extends BasicScene {
             }
 
             const sensitivity = 0.002;
-
-            this.yaw -= event.movementX * sensitivity;
-            this.pitch -= event.movementY * sensitivity;
-
-            // Prevent the camera from flipping upside down.
-            const limit = Math.PI / 2 - 0.01;
-
-            this.pitch = THREE.MathUtils.clamp(
-                this.pitch,
-                -limit,
-                limit
-            );
+            this.look(event.movementX * sensitivity, event.movementY * sensitivity);
         });
     }
 
-    updateMotion() {
+    updateMotion(deltaTime) {
+        
         const direction = new THREE.Vector3();
         if (this.keyboard.isDown("w") || this.keyboard.isDown("ArrowUp")) {
             direction.z -= 1;
@@ -159,6 +175,8 @@ class WalkThroughScene extends BasicScene {
         if (this.keyboard.isDown("d") || this.keyboard.isDown("ArrowRight")) {
             direction.x += 1;
         }
+        direction.x += this.touch.move.x;
+        direction.z += this.touch.move.z;
 
         let isMove = direction.length() > 0 
         if (isMove && this.timeSinceMove == null) {
@@ -167,12 +185,14 @@ class WalkThroughScene extends BasicScene {
             this.timeSinceMove = null;
         }
 
-        const speed = this.playerSpeedMax;
+        // playerSpeedMax is the step per 60fps frame; scale by elapsed time so slow devices move just as fast.
+        const speed = this.playerSpeedMax * (deltaTime / (1000 / 80));
         const oldPos = this.playerPosition.clone();
         // const speed = this.playerSpeedMin + (this.playerSpeedMax - this.playerSpeedMin) * (1 + Math.cos(Date.now() * 0.03)) / 2
         const directionWRSCamera = direction.clone().applyEuler(new THREE.Euler(0, this.yaw, 0));
-        directionWRSCamera.normalize();
-        directionWRSCamera.multiplyScalar(speed)
+        // Clamp rather than normalize so a partly pushed joystick moves slower.
+        directionWRSCamera.clampLength(0, 1);
+        directionWRSCamera.multiplyScalar(speed);
         this.playerPosition.add(directionWRSCamera);
 
         if (isMove) {
@@ -193,8 +213,8 @@ class WalkThroughScene extends BasicScene {
             this.floorY = newFloorY;
         }
 
-        this.playerYVelocity += this.gravity;
-        this.playerYOffset += this.playerYVelocity;
+        this.playerYVelocity += this.gravity * (deltaTime / 10);
+        this.playerYOffset += this.playerYVelocity  * (deltaTime / 10);
         if (this.playerYOffset < this.floorY) {
             this.playerYOffset = this.floorY;
             this.playerYVelocity = 0;
@@ -213,7 +233,7 @@ class WalkThroughScene extends BasicScene {
         this.camera.position.copy(bobWRSCamera);
 
         if (this.carousel)
-            this.carousel.model.rotation.y += 0.005
+            this.carousel.model.rotation.y = performance.now() * 0.00025;
         // this.playerModel.scene.rotation.y = this.yaw + Math.PI/2; // Rotate the model to face the same direction as the camera
 
         // let pos = this.position.clone();
@@ -228,8 +248,14 @@ class WalkThroughScene extends BasicScene {
 
 
     beforeRender() {
-        this.updateMotion();
-        this.updateCamera();
+        if (this.lastT === null) this.lastT = performance.now();
+        const now = performance.now();
+        // Cap so a stalled frame (e.g. after switching tabs) doesn't teleport the player.
+        const deltaTime = Math.min(now - this.lastT, 100);
+        this.lastT = now;
+
+        this.updateMotion(deltaTime);
+        this.updateCamera(deltaTime);
         this.carousel?.positionCrabs(performance.now() * 0.001);
     }
 
