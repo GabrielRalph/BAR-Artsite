@@ -103,6 +103,7 @@ class Carousel extends Asset {
         this.crabs = new Crabs();
         this.add(this.crabs);    
 
+        this.rec
         // let bbox = new Box3().setFromObject(this.model);
         // console.log(bbox);
 
@@ -166,7 +167,9 @@ class Carousel extends Asset {
             this.poles[i].matrixAutoUpdate = false;
 
             
-
+            this.traverse((o) => {
+                if (o.isMesh) o.castShadow = true;
+            });
         }
     }
 
@@ -207,7 +210,7 @@ class Milker extends Asset {
 }
 
 class FluoroLight extends Group {
-    constructor(length = 1.2, intensity = 5) {
+    constructor(length = 1.2, intensity = 20) {
         super();
         // Visible glowing tube, lying along the z axis.
         const tube = new Mesh(
@@ -282,9 +285,7 @@ class Room extends Asset {
         this.door.position.set(0, 0, this.depth / 2 - 0.1);
         this.door.rotation.y = Math.PI/2;
         this.door.scale.set(0.75, 0.75, 0.75);
-        this.door.traverse((o) => {
-            if (o.isMesh) o.castShadow = true;
-        });
+       
 
 
         this.window = new Window();
