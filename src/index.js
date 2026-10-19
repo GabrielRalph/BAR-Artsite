@@ -1,20 +1,25 @@
 import { BasicScene } from "./basic-scene";
-import { Carousel, Crab } from "./crab";
+import { Carousel, Room } from "./assets";
 import * as THREE from "three";
 import { Keyboard } from "./keyboard";
 import { TouchControls } from "./touch-controls";
 
+
+
+
+
 class WalkThroughScene extends BasicScene {
 
+    
     lastT = null;
     yaw = 0;
     pitch = 0;
     playerSpeedMax = 0.05;
     playerSpeedMin = 0.02;
-    playerPosition = new THREE.Vector3(0, 1.7, 5);
+    playerPosition = new THREE.Vector3(0, 1.6, 5);
     playerBob = new THREE.Vector3(0, 0, 0);
     timeSinceMove = null;
-    bobFrequency = 0.03;
+    bobFrequency = 0.023;
     bobAmountY = 0.03;
     bobAmountZ = 0.03;
 
@@ -25,15 +30,29 @@ class WalkThroughScene extends BasicScene {
     floorY = 0;
     lastFloorY = 0;
     gravity = -0.005;
+
+    roomHeight = 4;
+    roomWidth = 6;
+    roomDepth = 12;
+
  
     constructor() {
         super();
         this.keyboard = new Keyboard();
         this.keyboard.onKeyDown(" ", () => this.jump());
+        this.keyboard.onKeyDown("e", () => this.interact());
 
         this.touch = new TouchControls(this);
         this.touch.onLook((dx, dy) => this.look(dx, dy));
         this.touch.onJump(() => this.jump());
+
+    }
+
+    interact() {
+        if (this.room && this.room.nearCoinSlot(this.playerPosition)) {
+            console.log("Interacting with coin slot");
+            this.carousel.on = true;
+        }
     }
 
     jump() {
@@ -51,20 +70,45 @@ class WalkThroughScene extends BasicScene {
         this.pitch = THREE.MathUtils.clamp(this.pitch, -limit, limit);
     }
 
+    // Renders the room once into a cube map so metal surfaces reflect the room instead of black.
+    captureEnvironment() {
+        const target = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType });
+        const cubeCamera = new THREE.CubeCamera(0.05, 50, target);
+        cubeCamera.position.set(0, 1.5, 0);
+
+        // Hide the carousel so it doesn't appear in its own reflection.
+        this.carousel.visible = false;
+        cubeCamera.update(this.renderer, this.scene);
+        this.carousel.visible = true;
+
+        // PMREM pre-blurs the cube map so rough metals get a matching blurry reflection.
+        const pmrem = new THREE.PMREMGenerator(this.renderer);
+        this.scene.environment = pmrem.fromCubemap(target.texture).texture;
+        pmrem.dispose();
+        target.dispose();
+    }
+
+    async createRoom() {
+        await Room.load();
+        const room = new Room(this.roomWidth, this.roomHeight, this.roomDepth);
+        this.scene.add(room);
+        this.room = room;
+    }
 
     async createFloor() {
         try {
 
-            const geometry = new THREE.PlaneGeometry(17 , 17);
+            const geometry = new THREE.PlaneGeometry(13 , 13);
             const textureLoader = new THREE.TextureLoader();
-            const texture = await textureLoader.loadAsync(import.meta.resolve('../assets/floor.webp'));
+            const texture = await textureLoader.loadAsync(import.meta.resolve('../assets/tiles.jpg'));
             // tile the texture
             texture.wrapS = THREE.RepeatWrapping;
             texture.wrapT = THREE.RepeatWrapping;
-            texture.repeat.set(4, 4);
+            texture.repeat.set(8,8);
             const material = new THREE.MeshStandardMaterial({ map: texture });
             const floor = new THREE.Mesh(geometry, material);
             floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
             this.scene.add(floor);
             this.floor = floor;
 
@@ -115,7 +159,7 @@ class WalkThroughScene extends BasicScene {
             THREE.SRGBColorSpace
         );
         const brightness = (data[i] + data[i + 1] + data[i + 2]) / (3 * 255);
-        return { color, brightness };
+        return { color, brightness: 0 };
     }
 
 
@@ -125,16 +169,23 @@ class WalkThroughScene extends BasicScene {
 
     async load() {
 
+        let promts = document.createElement("div");
+        promts.id = "promts";
+        this.appendChild(promts);
+        this.prompts = promts;
+        promts.addEventListener("click", () => this.interact());
+
+
         await Promise.all([
-            Crab.load(),
             Carousel.load(),
-            this.createFloor()
+            this.createFloor(),
+            this.createRoom()
         ])
 
         this.carousel = new Carousel();
-        // this.crab = new Crab();
-        this.scene.add(this.carousel.model);
-        // this.scene.add(this.crab.model);
+        this.carousel.position.set(this.roomWidth/8, 0, 0);
+        this.scene.add(this.carousel);
+        this.captureEnvironment();
 
         let lastPointerType = "mouse";
         document.addEventListener('pointerdown', (event) => {
@@ -204,9 +255,17 @@ class WalkThroughScene extends BasicScene {
             this.playerBob.z = newZ;
         }   
 
+        if (this.room) {
+            if (this.room.isOutside(this.playerPosition)) {
+                this.playerPosition.copy(oldPos);
+            }
+
+            this.prompts.innerHTML = this.room.nearCoinSlot(this.playerPosition) ? "Press [E] to interact" : "";
+        }
+
 
         const newFloorY = 3 * (this.getColorOfFloorAt(this.playerPosition.x, this.playerPosition.z)?.brightness ?? 0);
-        console.log(newFloorY, this.floorY, this.playerYOffset);
+        // console.log(newFloorY, this.floorY, this.playerYOffset);
         if (newFloorY - this.playerYOffset > this.floorY + 0.35) {
             this.playerPosition.copy(oldPos);
         } else {
@@ -232,8 +291,8 @@ class WalkThroughScene extends BasicScene {
         bobWRSCamera.y += this.playerYOffset;
         this.camera.position.copy(bobWRSCamera);
 
-        if (this.carousel)
-            this.carousel.model.rotation.y = performance.now() * 0.00025;
+            // this.carousel.model.rotation.y = performance.now() * 0.00025;
+        // }
         // this.playerModel.scene.rotation.y = this.yaw + Math.PI/2; // Rotate the model to face the same direction as the camera
 
         // let pos = this.position.clone();
@@ -254,9 +313,11 @@ class WalkThroughScene extends BasicScene {
         const deltaTime = Math.min(now - this.lastT, 100);
         this.lastT = now;
 
+        if (this.carousel) this.carousel.time = performance.now() * 0.001;
+
         this.updateMotion(deltaTime);
         this.updateCamera(deltaTime);
-        this.carousel?.positionCrabs(performance.now() * 0.001);
+        // this.carousel?.positionCrabs(performance.now() * 0.001);
     }
 
 

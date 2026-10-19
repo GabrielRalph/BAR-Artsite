@@ -22,6 +22,9 @@ export class BasicScene extends HTMLElement {
             alpha: true,
         });
 
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFShadowMap;
+
         this.renderer.setPixelRatio(
             Math.min(window.devicePixelRatio, 2)
         );
@@ -63,15 +66,15 @@ export class BasicScene extends HTMLElement {
         this.ambientLight = new THREE.HemisphereLight(
             0xffffff,
             0xffffff,
-            2
+            1
         );
         this.scene.add(this.ambientLight);
 
-        // scene background white
-        // this.scene.background = new THREE.Color(0xffffff);
-        this.directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-        this.directionalLight.position.set(5, 10, 7.5);
-        this.scene.add(this.directionalLight);
+        // // scene background white
+        // // this.scene.background = new THREE.Color(0xffffff);
+        // this.directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        // this.directionalLight.position.set(5, 10, 7.5);
+        // this.scene.add(this.directionalLight);
     }
 
 
