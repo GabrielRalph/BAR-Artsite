@@ -66,7 +66,7 @@ export class BasicScene extends HTMLElement {
         // this.ambientLight = new THREE.HemisphereLight(
         //     0xffffff,
         //     0xffffff,
-        //     1
+        //     .1
         // );
         // this.scene.add(this.ambientLight);
 

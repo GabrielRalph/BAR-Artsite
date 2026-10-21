@@ -1,6 +1,7 @@
-import { Mesh, MeshPhysicalMaterial, TextureLoader, Vector3, Matrix4, Matrix3, Box3 , Group, BoxGeometry, MeshBasicMaterial, DoubleSide, MeshStandardMaterial, CylinderGeometry, PointLight, Vector2, PlaneGeometry } from "three";
+import { Mesh, MeshPhysicalMaterial, TextureLoader, Vector3, Matrix4, Matrix3, Box3 , Group, BoxGeometry, MeshBasicMaterial, DoubleSide, MeshStandardMaterial, CylinderGeometry, PointLight, Vector2, PlaneGeometry, Color, BufferGeometry, Float32BufferAttribute, RepeatWrapping } from "three";
 import { DRACOLoader, GLTFLoader } from "three/examples/jsm/Addons.js";
 import { Water } from "three/examples/jsm/objects/Water2.js";
+import { metalness, roughness } from "three/tsl";
 
 
 const LOADERS = {
@@ -49,9 +50,30 @@ class Asset extends Group {
         const loaderKey = LOADERS.loadersByExtension[this.extension];
         if (loaderKey) {
             const loader = LOADERS[loaderKey];
-            const modelData = await loader.loadAsync(this.url, progress);
+            const modelData = await loader.loadAsync(this.url, (p) => {
+                if (progress instanceof Function) {
+                    progress(p.loaded / p.total);
+                }
+            });
             this.data = modelData;
         }
+    }
+}
+
+class AssetGroup extends Group {
+    static get usedAssets() {
+        return [];
+    }
+
+    static async load(progress) {
+        let progs = new Array(this.usedAssets.length).fill(0);
+        await Promise.all(this.usedAssets.map((asset, i) => asset.load((p) => {
+            progs[i] = p;
+            
+            if (progress instanceof Function) {
+                progress(progs.reduce((a, b) => a + b, 0) / progs.length);
+            }
+        })));
     }
 }
 
@@ -74,8 +96,13 @@ class Chair extends Asset {
     }
 }
 
-class Carousel extends Asset {
-    
+class CarouselModel extends Asset {
+    static get url() {
+        return import.meta.resolve("../assets/carousel-2.glb");
+    }
+}
+
+class Carousel extends AssetGroup {
     crabInfo = {
         height: 2.7,
         radius: 2,
@@ -91,10 +118,11 @@ class Carousel extends Asset {
 
     constructor() {
         super();
-        this.scale.set(0.47,0.47,0.47);  
-        // console.log([...this.children]);
-        // this.base = this.children[0];
-        
+        const carousel = new CarouselModel();
+        this.add(carousel);
+        this.carousel = carousel;
+
+
         this.poles = new Array(4).fill().map(() => {
             let p = new Pole()
             this.add( p );
@@ -102,12 +130,9 @@ class Carousel extends Asset {
         });
 
         this.crabs = new Crabs();
-        this.add(this.crabs);    
-
-        this.rec
-        // let bbox = new Box3().setFromObject(this.model);
-        // console.log(bbox);
-
+        this.add(this.crabs);   
+        
+        this.scale.set(0.47,0.47,0.47);  
     }
 
     set on(value) {
@@ -115,8 +140,6 @@ class Carousel extends Asset {
     }
 
     set time(value) {
-        // console.log(value)
-        // if;
         value = this._on ? value : 0;
         this.rotation.y = value / 4;
         this.positionCrabs(value);
@@ -152,9 +175,6 @@ class Carousel extends Asset {
             crab.matrix.copy(crabT);
             crab.matrixAutoUpdate = false;
 
-
-
-            // console.log(this.poles[i])
             const poleRadius = this.poleInfo.radius;
             const poleHeight = this.poleInfo.height + deltaPolH;
             const poleScale = this.poleInfo.scale;
@@ -166,7 +186,6 @@ class Carousel extends Asset {
             poleT.scale(new Vector3(poleScale, poleScale, poleScale));
             this.poles[i].matrix.copy(poleT);
             this.poles[i].matrixAutoUpdate = false;
-
             
             this.traverse((o) => {
                 if (o.isMesh) o.castShadow = true;
@@ -174,28 +193,11 @@ class Carousel extends Asset {
         }
     }
 
-
-
-    static async load(p = () => {}) {
-        let p1 = 0;
-        let p2 = 0;
-        await Promise.all([
-            Pole.load(),
-            Crabs.load((a) => {
-                p1 = a;
-                p((p1 + p2) / 2);
-            }),
-            super.load((a) => {
-                p2 = a;
-                p((p1 + p2) / 2);
-            })
-        ]);
-    }
-
-    static get url() {
-        return import.meta.resolve("../assets/carousel-2.glb");
+    static get usedAssets() {
+        return [Pole, Crabs, CarouselModel];
     }
 }
+
 
 
 class CoinSlot extends Asset {
@@ -211,7 +213,7 @@ class Milker extends Asset {
 }
 
 class FluoroLight extends Group {
-    constructor(length = 1.2, intensity = 20) {
+    constructor(length = 1.2, intensity = 27) {
         super();
         // Visible glowing tube, lying along the z axis.
         const tube = new Mesh(
@@ -246,7 +248,8 @@ class Window extends Asset {
 }
 
 class WaterBox extends Group {
-    constructor(width = 1, height = 1, depth = 1) {
+    maxHeight = 1;
+    constructor(width = 1,depth = 1) {
         super();
         const loader = new TextureLoader();
 
@@ -256,50 +259,147 @@ class WaterBox extends Group {
             scale: 2,
             flowDirection: new Vector2(1, 0.5),
             flowSpeed: 0.02,
-            textureWidth: 1024,
-            textureHeight: 1024,
+            textureWidth: 512,
+            textureHeight: 512,
             normalMap0: loader.load(import.meta.resolve("../assets/water_normal_1.jpg")),
             normalMap1: loader.load(import.meta.resolve("../assets/water_normal_2.jpg")),
         });
-        this.surface.rotation.x = -Math.PI / 2;
-        this.surface.position.y = height;
-        this.add(this.surface);
 
-        // Translucent sides; top and bottom faces (box groups 2 and 3) are hidden.
-        const side = new MeshPhysicalMaterial({
-            color: 0x4a7fd0,
-            transparent: true,
-            opacity: 0.35,
-            roughness: 0.05,
-            depthWrite: false,
-        });
-        const hidden = new MeshBasicMaterial({ visible: false });
-        this.sides = new Mesh(
-            new BoxGeometry(width, height, depth),
-            [side, side, hidden, hidden, side, side]
-        );
-        this.sides.position.y = height / 2;
-        this.add(this.sides);
+        this.surface.rotation.x = -Math.PI / 2;
+        this.add(this.surface);
+    }
+
+    set height(value) {
+        let color = new Color().setHSL(0.61, 1, 0.3);
+        this.surface.material.uniforms.color.value.copy(color);
+        this.surface.position.y = value;
     }
 }
 
-class Room extends Asset {
+
+class TexMaterial extends MeshStandardMaterial {
+    constructor(base, options = {}) {
+        const textureLoader = new TextureLoader();
+        const texNames = ["albedo", "bump", "metalic", "roughnessMap", "normal"];
+        const textures = Object.fromEntries(texNames
+            .filter(name => options[name] !== false)
+            .map(name => {
+                const url = `${base}/${name}.${options[name] ?? "jpg"}`
+                const tex = textureLoader.load(url)
+                tex.wrapS = RepeatWrapping;
+                tex.wrapT = RepeatWrapping;
+                tex.repeat.set(options.repeatX ?? 1, options.repeatY ?? 1);
+                return [name, tex];
+            }));
+      
+        super({
+            map: textures.albedo,
+            bumpMap: textures.bump,
+            metalnessMap: textures.metalic,
+            roughnessMap: textures.roughnessMap,
+            normalMap: textures.normal,
+            roughness: options.roughness ?? 1,
+            metalness: options.metalness ?? 0,
+            color: options.color ?? 0xffffff,
+            side: options.side ?? DoubleSide,
+        });
+    }
+}
+
+class CeilingMaterial extends TexMaterial {
+    constructor(w, d) {
+       super(import.meta.resolve("../assets/ceiling-panel"), {
+           repeatX: 3 * w / 1.5 / 4,
+           repeatY: 3 * d / 1.5 / 4,
+           roughness: 0.1,
+           metalness: 1,
+        //    normal: false,
+       });
+    }
+}
+
+
+
+class RoomWalls extends Mesh {
+    constructor(w, h, d, dh = 2.7, dw = 1.35, df = 4) {
+        let m = 1;
+        w /=2;
+        d /=2;
+        dw /= 2;
+        
+        /** Make Room Geometry like 
+         *  _______________________
+         * |                       |
+         * |                       |
+         * |                        ________
+         * |                                |
+         * |                        ________|
+         * |                       |
+         * |_______________________|
+         * 
+         */
+
+        const p = (t) => [
+            w,      t,      d,
+            w,      t,     -d,
+            -w,     t,     -d,
+            -w,     t,      d,
+            -dw,    t,      d,
+            -dw,    t,      d + df,
+             dw,    t,      d + df,
+             dw,    t,      d,
+        ]
+
+        const cx = (i, m = 8, L0 = 0, L1 = 8) => {
+            const M = (x) => x % m; 
+            return [
+                L0 + M(i),      L0 + M(i+1),    L1 + M(i+1), 
+                L1 + M(i+1),    L1 + M(i),    L0 + M(i)
+            ]
+        }
+
+        const geometry = new BufferGeometry();
+        geometry.setAttribute('position', new Float32BufferAttribute([
+            ...p(-m),
+            ...p(dh),
+            ...p(h).slice(0, 4 * 3)
+        ], 3));
+        geometry.setIndex([
+            ...new Array(8).fill(0).flatMap((_, i) => cx(i)),
+            ...new Array(4).fill(4).flatMap((_, i) => cx(i, 4, 8, 16)),
+            16, 17, 18,
+            18, 19, 16,
+            12, 13, 14,
+            14, 15, 12
+        ]);
+        super(geometry, new MeshStandardMaterial({
+            color: 0xfbfbff,
+            side: DoubleSide,
+            roughness: 0.8,
+            envMap: null,
+        }));
+        this.receiveShadow = true;
+        this.castShadow = true;
+    }
+}
+
+class Room extends AssetGroup {
 
     constructor(width, height, depth) {
         super();
         this.width = width;
         this.height = height;
         this.depth = depth;
-        let geom = new BoxGeometry(width, height + 1, depth);
-        let mat = new MeshStandardMaterial({
-            color: 0xfbfbff,
-            side: DoubleSide,
-            roughness: 0.8,
-         });
-        this.walls = new Mesh(geom, mat);
-        this.walls.position.y = ((height + 1) / 2) - 1;
-        // Walls only receive; if they cast too, the closed box would block the lights inside it.
-        this.walls.receiveShadow = true;
+
+        const ceiling = new Mesh(
+            new PlaneGeometry(width, depth),
+            new CeilingMaterial(width, depth)
+        );
+        ceiling.rotation.x = -Math.PI/2;
+        ceiling.position.y = height - 0.01;
+        this.add(ceiling);
+
+        this.walls = new RoomWalls(width, height, depth);
         this.add(this.walls);
 
         let coinSlot = new CoinSlot();
@@ -321,10 +421,18 @@ class Room extends Asset {
 
         this.door = new Door();
         this.add(this.door);
-        this.door.position.set(0, 0, this.depth / 2 - 0.1);
+        this.door.position.set(0, 0, this.depth / 2 + 0.1);
         this.door.rotation.y = Math.PI/2;
         this.door.scale.set(0.75, 0.75, 0.75);
+        this.door.traverse((o) => {
+            if (o.isMesh) o.castShadow = true;
+        });
 
+        this.door2 = new Door();
+        this.add(this.door2);
+        this.door2.scale.set(0.75, 0.75, 0.75);
+        this.door2.position.set(0, 0, this.depth / 2 + 3);
+        this.door2.rotation.y =- Math.PI/2;
 
         this.window = new Window();
         this.add(this.window);
@@ -334,9 +442,9 @@ class Room extends Asset {
             if (o.isMesh) o.castShadow = true;
         });
 
-        this.waterBox = new WaterBox(this.width, 0.5, this.depth);
-        this.add(this.waterBox);
-        this.waterBox.position.set(0, 0, 0);
+        this.waterBox = new WaterBox(this.width, this.depth);
+        // this.add(this.waterBox);
+        this.waterBox.height = 0.01;
 
         this.milker = new Milker();
         this.add(this.milker);
@@ -356,7 +464,6 @@ class Room extends Asset {
 
     isOutside(point) {
         const { x, y, z } = point;
-        console.log(x, z)
         let padd = 0.3;
         return (
             x < padd-this.width / 2 ||
@@ -372,20 +479,32 @@ class Room extends Asset {
         let distance = 0.5; // Define how close is considered "near"
         return point.distanceTo(new Vector3(this.width / 2, 1.3, 0)) < distance;
     }
-        
 
 
-    static async load() {
-        await Promise.all([
-            super.load(),
-            CoinSlot.load(),
-            Chair.load(),
-            Milker.load(),
-            Door.load(),
-            Window.load()
-        ]);
+    set on(value) {
+        this._on = value;
+        if (value) {
+            this.add(this.waterBox)
+        } else {
+            this.remove(this.waterBox);
+        }
+    }
+    get on() {
+        return this._on;
+    }
+
+
+    set time(value) {
+        if (this.on) {
+            if (this.waterBox) this.waterBox.height = Math.min(value/100, 0.5);
+        }
+    }
+
+
+    static get usedAssets() {
+        return [Window, Door, Milker, CoinSlot, Chair];
     }
 }
 
 
-export {Carousel, CoinSlot, Room}
+export {Carousel, CoinSlot, Room, TexMaterial}

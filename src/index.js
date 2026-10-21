@@ -1,8 +1,9 @@
 import { BasicScene } from "./basic-scene";
-import { Carousel, Room } from "./assets";
+import { Carousel, Room, TexMaterial } from "./assets";
 import * as THREE from "three";
 import { Keyboard } from "./keyboard";
 import { TouchControls } from "./touch-controls";
+import { metalness, roughness } from "three/tsl";
 
 
 
@@ -52,6 +53,7 @@ class WalkThroughScene extends BasicScene {
         if (this.room && this.room.nearCoinSlot(this.playerPosition)) {
             console.log("Interacting with coin slot");
             this.carousel.on = true;
+            this.room.on = true;
         }
     }
 
@@ -89,7 +91,7 @@ class WalkThroughScene extends BasicScene {
     }
 
     async createRoom() {
-        await Room.load();
+        await Room.load((p) => console.log(`Room loading progress: ${p}`));
         const room = new Room(this.roomWidth, this.roomHeight, this.roomDepth);
         this.scene.add(room);
         this.room = room;
@@ -98,14 +100,25 @@ class WalkThroughScene extends BasicScene {
     async createFloor() {
         try {
 
-            const geometry = new THREE.PlaneGeometry(13 , 13);
-            const textureLoader = new THREE.TextureLoader();
-            const texture = await textureLoader.loadAsync(import.meta.resolve('../assets/tiles.jpg'));
+            const geometry = new THREE.PlaneGeometry(20, 20);
+
+            // const textureLoader = new THREE.TextureLoader();
+           
+            // const texture = await textureLoader.loadAsync(import.meta.resolve('../assets/tiles.jpg'));
             // tile the texture
-            texture.wrapS = THREE.RepeatWrapping;
-            texture.wrapT = THREE.RepeatWrapping;
-            texture.repeat.set(8,8);
-            const material = new THREE.MeshStandardMaterial({ map: texture });
+            // texture.wrapS = THREE.RepeatWrapping;
+            // texture.wrapT = THREE.RepeatWrapping;
+            // texture.repeat.set(10,10);
+            
+
+            const material = new TexMaterial(import.meta.resolve('../assets/t512'), {
+                repeatX: 8,
+                repeatY: 8,
+                matalic: false,
+                // normal: "png",
+                metalness: 0,
+                roughness: .9
+            });
             const floor = new THREE.Mesh(geometry, material);
             floor.rotation.x = -Math.PI / 2;
             floor.receiveShadow = true;
@@ -185,6 +198,7 @@ class WalkThroughScene extends BasicScene {
         this.carousel = new Carousel();
         this.carousel.position.set(this.roomWidth/8, 0, 0);
         this.scene.add(this.carousel);
+
         this.captureEnvironment();
 
         let lastPointerType = "mouse";
@@ -314,7 +328,7 @@ class WalkThroughScene extends BasicScene {
         this.lastT = now;
 
         if (this.carousel) this.carousel.time = performance.now() * 0.001;
-
+        if (this.room) this.room.time = performance.now() * 0.001;
         this.updateMotion(deltaTime);
         this.updateCamera(deltaTime);
         // this.carousel?.positionCrabs(performance.now() * 0.001);
