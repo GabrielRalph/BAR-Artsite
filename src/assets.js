@@ -1,5 +1,6 @@
-import { Mesh, MeshPhysicalMaterial, TextureLoader, Vector3, Matrix4, Matrix3, Box3 , Group, BoxGeometry, MeshBasicMaterial, DoubleSide, MeshStandardMaterial, CylinderGeometry, PointLight } from "three";
+import { Mesh, MeshPhysicalMaterial, TextureLoader, Vector3, Matrix4, Matrix3, Box3 , Group, BoxGeometry, MeshBasicMaterial, DoubleSide, MeshStandardMaterial, CylinderGeometry, PointLight, Vector2, PlaneGeometry } from "three";
 import { DRACOLoader, GLTFLoader } from "three/examples/jsm/Addons.js";
+import { Water } from "three/examples/jsm/objects/Water2.js";
 
 
 const LOADERS = {
@@ -244,6 +245,44 @@ class Window extends Asset {
     }
 }
 
+class WaterBox extends Group {
+    constructor(width = 1, height = 1, depth = 1) {
+        super();
+        const loader = new TextureLoader();
+
+        // Water2 reflects/refracts about a single plane, so it only works on a flat surface, not a box.
+        this.surface = new Water(new PlaneGeometry(width, depth), {
+            color: 0xa7fd0,
+            scale: 2,
+            flowDirection: new Vector2(1, 0.5),
+            flowSpeed: 0.02,
+            textureWidth: 1024,
+            textureHeight: 1024,
+            normalMap0: loader.load(import.meta.resolve("../assets/water_normal_1.jpg")),
+            normalMap1: loader.load(import.meta.resolve("../assets/water_normal_2.jpg")),
+        });
+        this.surface.rotation.x = -Math.PI / 2;
+        this.surface.position.y = height;
+        this.add(this.surface);
+
+        // Translucent sides; top and bottom faces (box groups 2 and 3) are hidden.
+        const side = new MeshPhysicalMaterial({
+            color: 0x4a7fd0,
+            transparent: true,
+            opacity: 0.35,
+            roughness: 0.05,
+            depthWrite: false,
+        });
+        const hidden = new MeshBasicMaterial({ visible: false });
+        this.sides = new Mesh(
+            new BoxGeometry(width, height, depth),
+            [side, side, hidden, hidden, side, side]
+        );
+        this.sides.position.y = height / 2;
+        this.add(this.sides);
+    }
+}
+
 class Room extends Asset {
 
     constructor(width, height, depth) {
@@ -285,7 +324,6 @@ class Room extends Asset {
         this.door.position.set(0, 0, this.depth / 2 - 0.1);
         this.door.rotation.y = Math.PI/2;
         this.door.scale.set(0.75, 0.75, 0.75);
-       
 
 
         this.window = new Window();
@@ -296,6 +334,9 @@ class Room extends Asset {
             if (o.isMesh) o.castShadow = true;
         });
 
+        this.waterBox = new WaterBox(this.width, 0.5, this.depth);
+        this.add(this.waterBox);
+        this.waterBox.position.set(0, 0, 0);
 
         this.milker = new Milker();
         this.add(this.milker);
