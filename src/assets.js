@@ -276,7 +276,6 @@ class WaterBox extends Group {
     }
 }
 
-
 class TexMaterial extends MeshStandardMaterial {
     constructor(base, options = {}) {
         const textureLoader = new TextureLoader();
@@ -318,7 +317,20 @@ class CeilingMaterial extends TexMaterial {
     }
 }
 
-
+class KeyAndCoin extends Asset {
+    constructor(isKey = true) {
+        super();
+        for (let l of this.children) {
+            if ((l.name === "Key" && !isKey) || (l.name === "Coin" && isKey)) {
+                this.remove(l);
+                l.dispose();
+            }
+        }
+    }
+    static get url() {
+        return import.meta.resolve("../assets/coin+key.glb");
+    }
+}
 
 class RoomWalls extends Mesh {
     constructor(w, h, d, dh = 2.7, dw = 1.35, df = 4) {
@@ -384,12 +396,17 @@ class RoomWalls extends Mesh {
 }
 
 class Room extends AssetGroup {
-
     constructor(width, height, depth) {
         super();
         this.width = width;
         this.height = height;
         this.depth = depth;
+
+        this.keyAndCoin = new KeyAndCoin();
+        console.log(this.keyAndCoin);
+        this.add(this.keyAndCoin);
+        this.keyAndCoin.scale.set(0.1, 0.1, 0.1);
+        this.keyAndCoin.position.set(0, 1, 0);
 
         const ceiling = new Mesh(
             new PlaneGeometry(width, depth),
@@ -502,9 +519,8 @@ class Room extends AssetGroup {
 
 
     static get usedAssets() {
-        return [Window, Door, Milker, CoinSlot, Chair];
+        return [Window, Door, Milker, CoinSlot, Chair, KeyAndCoin];
     }
 }
-
 
 export {Carousel, CoinSlot, Room, TexMaterial}

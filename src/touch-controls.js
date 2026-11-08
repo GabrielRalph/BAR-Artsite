@@ -53,7 +53,7 @@ const STYLE = `
 export class TouchControls {
     /** Joystick vector, x = strafe (right +), z = forward/back (back +), each in [-1, 1]. */
     move = { x: 0, z: 0 };
-    lookSensitivity = 0.005;
+    lookSensitivity = 2.5;
     joystickRadius = 60;
 
     #movePointer = null;

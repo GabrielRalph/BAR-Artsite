@@ -10,6 +10,8 @@
 <body>
     Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon 
     <basic-scene></basic-scene>
+
+    <img src = "./assets/cross-hair.svg" class = "cross-hair"></img>
 </body>
 <style> 
 body {
@@ -46,6 +48,16 @@ body {
         opacity: 0;
     }
 
+    .cross-hair {
+        position: fixed;
+        color: black;
+        top: 50%;
+        left: 50%;
+        width: 20px;
+        height: 20px;
+        transform: translate(-50%, -50%);
+        z-index: 10000;
+    }
 </style>
 <script src="./src/index.js" type = "module"></script>
 </html>
