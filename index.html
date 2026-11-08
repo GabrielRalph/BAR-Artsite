@@ -26,10 +26,14 @@ body {
     basic-scene {
         display: block;
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100vh;
+        /* Fill exactly the visible viewport (the same box the fixed crosshair
+           is centred in). 100vh on mobile includes the area behind the address
+           bar, which pushed the canvas centre - and the raycast - below the crosshair. */
+        inset: 0;
+        overflow: hidden;
+    }
+    basic-scene canvas {
+        display: block;
     }
 
     #promts {
@@ -57,6 +61,8 @@ body {
         height: 20px;
         transform: translate(-50%, -50%);
         z-index: 10000;
+        /* Let taps/clicks on the crosshair reach the scene underneath. */
+        pointer-events: none;
     }
 </style>
 <script src="./src/index.js" type = "module"></script>

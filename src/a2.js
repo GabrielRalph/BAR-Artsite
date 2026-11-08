@@ -79,6 +79,8 @@ class WaterBox extends Group {
 
         this.surface.material.uniforms.color.value.copy(color);
         this.add(this.surface);
+        this.raycast = () => {}
+        this.surface.raycast = this.raycast;
     }
 
     set height(value) {

@@ -85,7 +85,6 @@ class WaypointAnimation {
                 const t0 = i === 0 ? 0 : cumlativeDurations[i - 1];
                 const localT = (t - t0) / wp1.duration;
 
-                console.log("localT:", localT);
                 const easedT = wp1.timingFunction(localT);
 
                 const position = new THREE.Vector3().lerpVectors(wp0.position, wp1.position, easedT);
@@ -101,7 +100,6 @@ class WaypointAnimation {
                 m.makeRotationFromEuler(rotation);
                 m.setPosition(position);
                 m.scale(scale);
-                console.log("matrix:", scale.x);
                 return m;
             }
         }
@@ -146,6 +144,7 @@ class WalkThroughScene extends BasicScene {
         this.touch = new TouchControls(this);
         this.touch.onLook((dx, dy) => this.player.look(dx, dy));
         this.touch.onJump(() => this.player.jump());
+        this.touch.onTap(() => this.interact());
         window.wts = this;
         // this.player.position = new THREE.Vector3(0, 0, 5);
 
@@ -242,7 +241,6 @@ class WalkThroughScene extends BasicScene {
     }
 
     setupShadows() {
-        console.log("Setting up shadows");
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFShadowMap;
         this.renderer.shadowMap.autoUpdate = false;
@@ -304,7 +302,8 @@ class WalkThroughScene extends BasicScene {
         promts.id = "promts";
         this.appendChild(promts);
         this.prompts = promts;
-        promts.addEventListener("click", () => this.interact());
+        // Clicks on the prompt bubble up to the body click handler below, and
+        // taps are handled by TouchControls, so it needs no listener of its own.
 
         await LabScene.load();
         const labScene = new LabScene();
@@ -347,7 +346,8 @@ class WalkThroughScene extends BasicScene {
                 document.body.requestPointerLock();
             }
 
-            this.interact();
+            // Taps already interact via TouchControls; don't do it twice.
+            if (lastPointerType === "mouse") this.interact();
         });
 
         document.addEventListener('mousemove', (event) => {
@@ -493,7 +493,6 @@ class WalkThroughScene extends BasicScene {
             const rotateX = new THREE.Matrix4().makeRotationX(Math.PI / 2);
             matrixInFront.multiply(rotateX);
             matrixInFront.scale(new THREE.Vector3(0.5, 0.5, 0.5));
-            // console.log("Updating selected object in front of player", this.selectedObject);
             this.selectedObject.matrixAutoUpdate = false;
             this.selectedObject.matrix.copy(matrixInFront);
         }

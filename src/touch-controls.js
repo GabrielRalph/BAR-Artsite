@@ -62,6 +62,19 @@ export class TouchControls {
     #lookLast = null;
     #lookCallbacks = [];
     #jumpCallbacks = [];
+    #tapCallbacks = [];
+    /** @type {Map<number, {x: number, y: number, time: number}>} where each touch started */
+    #touchStarts = new Map();
+
+    /**
+     * A touch shorter than this (ms) that never strays more than `tapDistance`
+     * (px) from where it started is a tap. Looking around also only starts once
+     * a finger has moved further than `tapDistance`, so a tap doesn't nudge the
+     * crosshair off what you're aiming at.
+     */
+    tapTime = 400;
+    tapDistance = 20;
+    #lookDragging = false;
 
     /** @param {HTMLElement} element */
     constructor(element) {
@@ -103,8 +116,14 @@ export class TouchControls {
         this.#jumpCallbacks.push(callback);
     }
 
+    /** Called when the screen is tapped (anywhere except the jump button). */
+    onTap(callback) {
+        this.#tapCallbacks.push(callback);
+    }
+
     #onDown(event) {
-        if (event.pointerType !== "touch") return;
+        if (event.pointerType === "mouse") return;
+        this.#touchStarts.set(event.pointerId, { x: event.clientX, y: event.clientY, time: performance.now(), moved: false });
 
         if (event.clientX < window.innerWidth / 2 && this.#movePointer === null) {
             this.#movePointer = event.pointerId;
@@ -116,6 +135,7 @@ export class TouchControls {
         } else if (this.#lookPointer === null) {
             this.#lookPointer = event.pointerId;
             this.#lookLast = { x: event.clientX, y: event.clientY };
+            this.#lookDragging = false;
         } else {
             return;
         }
@@ -123,6 +143,12 @@ export class TouchControls {
     }
 
     #onMove(event) {
+        const start = this.#touchStarts.get(event.pointerId);
+        if (start && !start.moved
+            && Math.hypot(event.clientX - start.x, event.clientY - start.y) >= this.tapDistance) {
+            start.moved = true; // strayed too far: this touch is a drag, not a tap
+        }
+
         if (event.pointerId === this.#movePointer) {
             let dx = event.clientX - this.#moveOrigin.x;
             let dy = event.clientY - this.#moveOrigin.y;
@@ -135,6 +161,11 @@ export class TouchControls {
             this.move.x = dx / this.joystickRadius;
             this.move.z = dy / this.joystickRadius;
         } else if (event.pointerId === this.#lookPointer) {
+            // Ignore small jitter until the finger has clearly started dragging.
+            if (!this.#lookDragging) {
+                if (!start?.moved) return;
+                this.#lookDragging = true;
+            }
             const dx = event.clientX - this.#lookLast.x;
             const dy = event.clientY - this.#lookLast.y;
             this.#lookLast = { x: event.clientX, y: event.clientY };
@@ -145,6 +176,13 @@ export class TouchControls {
     }
 
     #onUp(event) {
+        const start = this.#touchStarts.get(event.pointerId);
+        this.#touchStarts.delete(event.pointerId);
+        if (start && event.type === "pointerup" && !start.moved
+            && performance.now() - start.time < this.tapTime) {
+            for (const callback of this.#tapCallbacks) callback();
+        }
+
         if (event.pointerId === this.#movePointer) {
             this.#movePointer = null;
             this.move.x = 0;
