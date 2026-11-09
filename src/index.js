@@ -12,6 +12,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { SelectiveGlowPass } from "./glow-pass.js";
+import { UnderwaterPass } from "./underwater-pass.js";
 import { FirstPersonPlayer } from "./fpp.js";
 import { CollisionWorld } from "./collision-world.js";
 import { PhysicsBody } from "./physics-body.js";
@@ -154,9 +155,19 @@ class WalkThroughScene extends BasicScene {
     setupPostProcessing() {
         const { width, height } = this.getViewportSize();
         // Multisampled target so we keep antialiasing when rendering through the composer.
-        const target = new THREE.WebGLRenderTarget(width, height, { type: THREE.HalfFloatType, samples: 4 });
+        // The depth texture lets the underwater pass work out how far away each pixel is.
+        const target = new THREE.WebGLRenderTarget(width, height, {
+            type: THREE.HalfFloatType,
+            samples: 4,
+            depthTexture: new THREE.DepthTexture(width, height),
+        });
         this.composer = new EffectComposer(this.renderer, target);
         this.composer.addPass(new RenderPass(this.scene, this.camera));
+
+        // Must come right after the RenderPass so it can read that pass's depth.
+        this.underwaterPass = new UnderwaterPass(this.camera);
+        this.underwaterPass.enabled = false;
+        this.composer.addPass(this.underwaterPass);
 
         this.glowPass = new SelectiveGlowPass(this.scene, this.camera, {
             color: 0xd8ecff,
@@ -172,7 +183,9 @@ class WalkThroughScene extends BasicScene {
     }
 
     render() {
-        if (this.composer && this.glowPass?.numberOfSelectedObjects > 0) {
+        if (!this.composer) return super.render();
+        this.glowPass.enabled = this.glowPass.numberOfSelectedObjects > 0;
+        if (this.glowPass.enabled || this.underwaterPass.enabled) {
             this.composer.render();
         } else {
             super.render();
@@ -245,7 +258,12 @@ class WalkThroughScene extends BasicScene {
         this.renderer.shadowMap.type = THREE.PCFShadowMap;
         this.renderer.shadowMap.autoUpdate = false;
         this.renderer.shadowMap.needsUpdate = true;
-        for (const [key, cast, recv] of [["Room", false, true], ["StaticObjects", true, false], ["CarouselGroup", true, true]]) {
+        for (const [key, cast, recv] of [
+            ["Room", false, true], 
+            ["StaticObjects", true, false], 
+            ["CarouselGroup", true, true],
+            ["RedMetalDoor", true, true]
+        ]) {
             const node = this.labScene.getNodePath(key);
             if (node) node.traverse((child) => {
                 if (child.isMesh) {
@@ -318,13 +336,24 @@ class WalkThroughScene extends BasicScene {
         this.makeMoveable(this.labScene.getNodePath("Coin"));
 
         // Make the key selectable
-        this.makeMoveable(this.labScene.getNodePath("Key"));
+        const key = this.labScene.getNodePath("Key")
+        key.pickupScale = 0.3
+        this.makeMoveable(key);
 
         const coinSlot = this.labScene.getNodePath("CoinSlot");
         coinSlot.isSelectable = true;
         coinSlot.onSelect = () => {
             if (this.selectedObject && this.selectedObject.name === "Coin") {
                 this.playCoinInsertAnimation();
+            }
+        };
+
+
+        const door = this.labScene.getNodePath("RedMetalDoor/Door");
+        door.isSelectable = true;
+        door.onSelect = () => {
+            if (this.spinCarousel) {
+                this.labScene.openDoor();
             }
         };
 
@@ -437,10 +466,14 @@ class WalkThroughScene extends BasicScene {
             }
         }
 
+
+
         // The carousel spins (and its crabs/poles bob), so it's tracked as a
         // moving obstacle that the player and dropped objects can ride.
         const carousel = this.labScene.getNodePath("CarouselGroup");
+        const door = this.labScene.getNodePath("RedMetalDoor/Door");
         if (carousel) this.world.add(carousel, { dynamic: true });
+        if (door) this.world.add(door, { dynamic: true });
 
         // Start clear of the carousel (which sits around the origin), facing it.
         this.player.position = new THREE.Vector3(0, .3, 1.8);
@@ -478,8 +511,8 @@ class WalkThroughScene extends BasicScene {
         // Animate moving obstacles first, then let the collision world pick up
         // their new pose before anything collides with them.
         if (this.labScene && this.spinCarousel) {
-            this.labScene.carouselTheta = performance.now() * 0.001;
-            this.labScene.getNodePath("Water").height += deltaTime * 0.05;
+           this.labScene.animation(deltaTime);
+       
         }
 
         this.world.update();
@@ -489,17 +522,28 @@ class WalkThroughScene extends BasicScene {
         this.player.transformCamera(this.camera);
         for (const body of this.bodies.values()) body.update(deltaTime);
         if (this.selectedObject) {
+            const ps = this.selectedObject.pickupScale ?? 0.5;
             const matrixInFront = this.player.getMatrixInFront(0.25, -0.25, -0.25);
             const rotateX = new THREE.Matrix4().makeRotationX(Math.PI / 2);
             matrixInFront.multiply(rotateX);
-            matrixInFront.scale(new THREE.Vector3(0.5, 0.5, 0.5));
+            matrixInFront.scale(new THREE.Vector3(ps,ps,ps));
             this.selectedObject.matrixAutoUpdate = false;
             this.selectedObject.matrix.copy(matrixInFront);
         }
         for (const animation of this.animations) {
             animation.update(deltaTime);
         }
-    
+
+        this.updateUnderwater();
+    }
+
+    /** Turns the underwater look on when the camera is (or is about to go) below the water surface. */
+    updateUnderwater() {
+        const water = this.labScene?.getNodePath("Water");
+        if (!water || !this.underwaterPass) return;
+        this.camera.updateMatrixWorld();
+        this.underwaterPass.enabled = water.updateForCamera(this.camera);
+        this.underwaterPass.waterY = water.worldHeight;
     }
 
 }
