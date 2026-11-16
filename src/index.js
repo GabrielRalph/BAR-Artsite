@@ -5,9 +5,6 @@ import { TouchControls } from "./touch-controls";
 
 import { LabScene } from "./a2.js";
 
-import { RectAreaLightHelper } from "three/examples/jsm/helpers/RectAreaLightHelper.js";
-
-
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
@@ -16,6 +13,7 @@ import { UnderwaterPass } from "./underwater-pass.js";
 import { FirstPersonPlayer } from "./fpp.js";
 import { CollisionWorld } from "./collision-world.js";
 import { PhysicsBody } from "./physics-body.js";
+import { SoundSprites } from "./sound-sprites.js";
 
 
 
@@ -146,14 +144,13 @@ class WalkThroughScene extends BasicScene {
         this.touch.onLook((dx, dy) => this.player.look(dx, dy));
         this.touch.onJump(() => this.player.jump());
         this.touch.onTap(() => this.interact());
-        window.wts = this;
-        // this.player.position = new THREE.Vector3(0, 0, 5);
 
         this.setupPostProcessing();
     }
 
     setupPostProcessing() {
         const { width, height } = this.getViewportSize();
+
         // Multisampled target so we keep antialiasing when rendering through the composer.
         // The depth texture lets the underwater pass work out how far away each pixel is.
         const target = new THREE.WebGLRenderTarget(width, height, {
@@ -310,6 +307,7 @@ class WalkThroughScene extends BasicScene {
             this.bodies.get(object)?.hold();
             this.glowPass.add(object);
             this.selectedObject = object;
+            this.sounds.play("pickup");
         };
     }
 
@@ -320,6 +318,9 @@ class WalkThroughScene extends BasicScene {
         promts.id = "promts";
         this.appendChild(promts);
         this.prompts = promts;
+
+
+        this.sounds = await SoundSprites.load(import.meta.resolve("../assets/SFX"))
         // Clicks on the prompt bubble up to the body click handler below, and
         // taps are handled by TouchControls, so it needs no listener of its own.
 
@@ -345,6 +346,8 @@ class WalkThroughScene extends BasicScene {
         coinSlot.onSelect = () => {
             if (this.selectedObject && this.selectedObject.name === "Coin") {
                 this.playCoinInsertAnimation();
+            } else if (this.selectedObject) {
+                this.sounds.play("wrong");
             }
         };
 
@@ -354,6 +357,7 @@ class WalkThroughScene extends BasicScene {
         door.onSelect = () => {
             if (this.spinCarousel) {
                 this.labScene.openDoor();
+                this.sounds.play("door");
             }
         };
 
@@ -390,12 +394,18 @@ class WalkThroughScene extends BasicScene {
     playCoinInsertAnimation() {
         const coin = this.labScene.getNodePath("Coin");
         this.glowPass.remove(coin);
+        // The coin now belongs to the slot: stop holding it and stop simulating it,
+        // otherwise picking up something else later "drops" it out of the slot.
+        this.selectedObject = null;
+        this.bodies.delete(coin);
+        coin.isSelectable = false;
+
         const coinAnimation = new WaypointAnimation(coin);
         coinAnimation.add(coin.matrix, 10); // Example waypoint, adjust as needed
 
         const pos2 = new THREE.Vector3(3.179, 1.62, 2.93);
         const rotation = new THREE.Euler(Math.PI/2, 0, -Math.PI/2); // Example rotation, adjust as needed
-        coinAnimation.add(pos2, rotation, new THREE.Vector3(1.2, 1.2, 1.2),  1); // Example waypoint, adjust as needed
+        coinAnimation.add(pos2, rotation, new THREE.Vector3(1.2, 1.2, 1.2),  1, (t) => t**0.5); // Example waypoint, adjust as needed
 
         const rot2 = new THREE.Euler(3 * Math.PI/4, 0, -Math.PI/2);
         coinAnimation.add(pos2.clone().add(new THREE.Vector3(0, -0.01, 0.1)), rot2, new THREE.Vector3(1.2, 1.2, 1.2), 0.3);
@@ -406,7 +416,12 @@ class WalkThroughScene extends BasicScene {
         };
         
 
-    
+        setTimeout(() => {
+            this.sounds.play("coinslot");
+        }, 1000);
+        setTimeout(() => {
+            this.sounds.play("sparkle")
+        }, 1500)
         // Implement the coin insert animation logic here
     }
 
@@ -422,9 +437,6 @@ class WalkThroughScene extends BasicScene {
             this.dropSelected();
         } else if (selected) {
             selected.onSelect?.();
-
-
-            
         } 
    
     }
@@ -435,6 +447,8 @@ class WalkThroughScene extends BasicScene {
         if (!object) return;
         this.glowPass.remove(object);
         this.selectedObject = null;
+
+
 
         const body = this.bodies.get(object);
         if (body) {
@@ -512,15 +526,23 @@ class WalkThroughScene extends BasicScene {
         // their new pose before anything collides with them.
         if (this.labScene && this.spinCarousel) {
            this.labScene.animation(deltaTime);
-       
         }
+
+        const water = this.labScene?.getNodePath("Water");
 
         this.world.update();
 
         this.updateMotion();
         this.player.update(deltaTime);
         this.player.transformCamera(this.camera);
-        for (const body of this.bodies.values()) body.update(deltaTime);
+        for (const body of this.bodies.values()) {
+            let oldPos = body.position.clone();
+            body.update(deltaTime);
+            if (this.spinCarousel && water && oldPos.y >= water.height && body.position.y < water.height) {
+                this.sounds.play("waterdrop");
+            }
+        }
+
         if (this.selectedObject) {
             const ps = this.selectedObject.pickupScale ?? 0.5;
             const matrixInFront = this.player.getMatrixInFront(0.25, -0.25, -0.25);

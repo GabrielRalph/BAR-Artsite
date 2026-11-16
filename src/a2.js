@@ -14,8 +14,12 @@ const LOADERS = {
         "webp": "texture"
     }
 }
+
 LOADERS.gltf.setDRACOLoader(LOADERS.draco);
 
+function deg(theta) {
+    return Math.PI * theta / 180
+}
 
 class Asset extends Group {
     constructor() {
@@ -276,13 +280,15 @@ class LabScene extends Asset {
         this.carouselTheta = performance.now() * 0.001;
         this.getNodePath("Water").height += dt * 0.05;
 
-        if (this._openDoor && this.doorAngle < Math.PI / 3) {
-            this.doorAngle += dt * Math.PI / 4;
+
+
+        if (this._openDoor && this.doorAngle < deg(70)) {
+            let da = this.doorAngle < deg(60) ? deg(45) : deg(10);
+            this.doorAngle += dt * da;
         } else if (!this._openDoor) {
             this.doorAngle = Math.min(this.time / 2, 1) * Math.PI / 8
         }
     }
-
 
 
     static get url() {

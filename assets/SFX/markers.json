@@ -1,0 +1,79 @@
+[
+    {
+        "sample": [
+            0,
+            39690
+        ],
+        "time": [
+            0.0,
+            0.9
+        ],
+        "name": "right after coin goes in the coin slot activates carousel"
+    },
+    {
+        "sample": [
+            39690,
+            138915
+        ],
+        "time": [
+            0.9,
+            3.15
+        ],
+        "name": "Door opens"
+    },
+    {
+        "sample": [
+            138915,
+            158760
+        ],
+        "time": [
+            3.15,
+            3.6
+        ],
+        "name": "Wrong sound"
+    },
+    {
+        "sample": [
+            158760,
+            213885
+        ],
+        "time": [
+            3.6,
+            4.85
+        ],
+        "name": "Picking up coin and key"
+    },
+    {
+        "sample": [
+            213885,
+            235935
+        ],
+        "time": [
+            4.85,
+            5.35
+        ],
+        "name": "Coin or key drops in water"
+    },
+    {
+        "sample": [
+            235935,
+            253575
+        ],
+        "time": [
+            5.35,
+            5.75
+        ],
+        "name": "Clicking on buttons"
+    },
+    {
+        "sample": [
+            253575,
+            295470
+        ],
+        "time": [
+            5.75,
+            6.7
+        ],
+        "name": "Coin going in coin slot02"
+    }
+]
