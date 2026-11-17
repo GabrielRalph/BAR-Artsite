@@ -312,7 +312,27 @@ class WalkThroughScene extends BasicScene {
         };
     }
 
+    fixNormalAliasing(){
+        // const maxAniso = this.renderer.capabilities.getMaxAnisotropy();
+        // console.log("Max Anisotropy:", maxAniso);
+        // this.labScene.traverse((obj) => {
+        //     if (!obj.isMesh) return;
+        //     const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
 
+        //     mats.forEach((mat) => {
+        //         const tex = mat.normalMap;
+        //         if (tex) {
+        //             tex.magFilter = THREE.LinearFilter;
+        //             tex.minFilter = THREE.LinearMipmapLinearFilter;
+        //             tex.generateMipmaps = true;
+        //             tex.anisotropy = maxAniso;           // sharper at grazing angles, less shimmer
+        //             tex.colorSpace = THREE.NoColorSpace; // normal maps must NOT be sRGB
+        //             tex.needsUpdate = true;
+        //         }
+
+        //     });
+        // });
+    }
 
     async load() {
         let promts = document.createElement("div");
@@ -331,6 +351,8 @@ class WalkThroughScene extends BasicScene {
         this.scene.add(labScene);
         await labScene.setupWindowView();
         window.ls = labScene;
+
+        this.fixNormalAliasing();
 
         this.setupCollisions();
 
@@ -404,7 +426,11 @@ class WalkThroughScene extends BasicScene {
     playKeyInsertAnimation() {
         
         const keyholeB = this.labScene.getNodePath("CarouselGroup/KeyholeT/Keyhole/KeyholeB");
+        const carousel = this.labScene.getNodePath("CarouselGroup");
         
+        const T_w_rel_c = new THREE.Matrix4().copy(carousel.matrixWorld).invert();
+        const T_w_rel_c0 = new THREE.Matrix4().copy(this.labScene.carouselMatrix).invert();
+
 
         const key = this.selectedObject;
         if (!key) return;
@@ -416,12 +442,16 @@ class WalkThroughScene extends BasicScene {
         const t1 = 1;
         const t2 = 0.4;
 
-        const a1 = new WaypointAnimation(key)
-            .add(key.matrix, 10)
-            .add(key.waypoints[0], t1)
-            .add(key.waypoints[1], t2);
-        this.animations.push(a1); 
+        const m1 = new THREE.Matrix4().copy(T_w_rel_c).multiply(key.matrix);
+        const m2 = new THREE.Matrix4().copy(T_w_rel_c0).multiply(key.waypoints[0]);
+        const m3 = new THREE.Matrix4().copy(T_w_rel_c0).multiply(key.waypoints[1]);
 
+        carousel.add(key);
+        const a1 = new WaypointAnimation(key)
+            .add(m1, 10)
+            .add(m2, t1)
+            .add(m3, t2);
+        this.animations.push(a1); 
 
         const khb1 = keyholeB.matrix;
         const khb2 = keyholeB.matrix.clone();
@@ -435,8 +465,6 @@ class WalkThroughScene extends BasicScene {
         setTimeout(() => {
             this.sounds.play("click");
         }, t1 * 1000);
-
-
     }
 
     playCoinInsertAnimation() {

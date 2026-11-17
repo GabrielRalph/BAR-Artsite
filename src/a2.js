@@ -233,14 +233,16 @@ class LabScene extends Asset {
         delete this.nMap["Waypoints"]
 
 
-
+        this.carouselMatrix = new Matrix4().copy(this.getNodePath("CarouselGroup").matrixWorld);
 
         this.doorAngle = 0;
         this.carouselTheta = 0;
 
 
+
     }
 
+       
     set doorAngle(a) {
         this.getNodePath("RedMetalDoor/Door").rotation.y = -a;
     }
