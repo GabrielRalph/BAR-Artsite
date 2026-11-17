@@ -34,11 +34,10 @@ class WaypointAnimation {
     add(...args) {
         let rotation, position, scale, duration, timingFunction;
         if (args[0] instanceof THREE.Matrix4) {
-            const decomposed = new THREE.Vector3();
-            scale = new THREE.Vector3();
+            position= new THREE.Vector3();
             rotation = new THREE.Euler();
-            args[0].decompose(decomposed, new THREE.Quaternion().setFromEuler(rotation), scale);
-            position = decomposed;
+            scale = new THREE.Vector3();
+            args[0].decompose(position, rotation, scale);
             duration = args[1];
             timingFunction = args[2] ?? ((t) => t);
             
@@ -52,6 +51,8 @@ class WaypointAnimation {
 
         const waypoint = { position, rotation, scale, duration, timingFunction };
         this.#waypoints.push(waypoint);
+
+        return this;
     }
 
     get totalDuration() {
@@ -329,7 +330,7 @@ class WalkThroughScene extends BasicScene {
         this.labScene = labScene;
         this.scene.add(labScene);
         await labScene.setupWindowView();
-
+        window.ls = labScene;
 
         this.setupCollisions();
 
@@ -358,6 +359,16 @@ class WalkThroughScene extends BasicScene {
             if (this.spinCarousel) {
                 this.labScene.openDoor();
                 this.sounds.play("door");
+            }
+        };
+
+        const keyhole = this.labScene.getNodePath("CarouselGroup/KeyholeT");
+        keyhole.isSelectable = true;
+        keyhole.onSelect = () => {
+            if (this.selectedObject && this.selectedObject.name === "Key") {
+                this.playKeyInsertAnimation();
+            } else if (this.selectedObject) {
+                this.sounds.play("wrong");
             }
         };
 
@@ -390,6 +401,43 @@ class WalkThroughScene extends BasicScene {
         });
     }
 
+    playKeyInsertAnimation() {
+        
+        const keyholeB = this.labScene.getNodePath("CarouselGroup/KeyholeT/Keyhole/KeyholeB");
+        
+
+        const key = this.selectedObject;
+        if (!key) return;
+        this.glowPass.remove(key);
+        this.selectedObject = null;
+        this.bodies.delete(key);
+        key.isSelectable = false;
+
+        const t1 = 1;
+        const t2 = 0.4;
+
+        const a1 = new WaypointAnimation(key)
+            .add(key.matrix, 10)
+            .add(key.waypoints[0], t1)
+            .add(key.waypoints[1], t2);
+        this.animations.push(a1); 
+
+
+        const khb1 = keyholeB.matrix;
+        const khb2 = keyholeB.matrix.clone();
+        khb2.multiply(new THREE.Matrix4().makeRotationY(Math.PI / 2));
+        const a2 = new WaypointAnimation(keyholeB)
+            .add(khb1, 10)
+            .add(khb1, t1)
+            .add(khb2, t2);
+        this.animations.push(a2);
+
+        setTimeout(() => {
+            this.sounds.play("click");
+        }, t1 * 1000);
+
+
+    }
 
     playCoinInsertAnimation() {
         const coin = this.labScene.getNodePath("Coin");

@@ -1,4 +1,4 @@
-import { Mesh, MeshPhysicalMaterial, TextureLoader, Vector3, Matrix4, Matrix3, Box3 , Group, BoxGeometry, MeshBasicMaterial, DoubleSide, MeshStandardMaterial, CylinderGeometry, PointLight, Vector2, PlaneGeometry, Color, BufferGeometry, Float32BufferAttribute, RepeatWrapping, EquirectangularReflectionMapping, SRGBColorSpace, ShaderMaterial, BackSide } from "three";
+import { Mesh, MeshPhysicalMaterial, TextureLoader, Vector3, Matrix4, Matrix3, Box3 , Group, BoxGeometry, MeshBasicMaterial, DoubleSide, MeshStandardMaterial, CylinderGeometry, PointLight, Vector2, PlaneGeometry, Color, BufferGeometry, Float32BufferAttribute, RepeatWrapping, EquirectangularReflectionMapping, SRGBColorSpace, ShaderMaterial, BackSide, Object3D } from "three";
 import { DRACOLoader, GLTFLoader } from "three/examples/jsm/Addons.js";
 import { Water } from "three/examples/jsm/objects/Water2.js";
 
@@ -214,16 +214,37 @@ class LabScene extends Asset {
         center.y = 0;
         waterBox.position.copy(center);
         this.add(waterBox); 
-
         this.nMap["Water"] = waterBox;
+
+
+        let waypoints = this.getNodePath("Waypoints");
+        for (let child of waypoints.children) {
+            let name = child.name;
+            let s = name.split("-");
+            let key = s.slice(0, -1).join("-");
+            let index = s[s.length - 1];
+            let object = this.getNodePath(key);
+            if (object) {
+                if (!("waypoints" in object)) object.waypoints = {}
+                object.waypoints[index] = child.matrix;
+            }
+            delete this.nMap[name]
+        }
+        delete this.nMap["Waypoints"]
+
+
+
 
         this.doorAngle = 0;
         this.carouselTheta = 0;
+
+
     }
 
     set doorAngle(a) {
         this.getNodePath("RedMetalDoor/Door").rotation.y = -a;
     }
+
     get doorAngle() {
         return -this.getNodePath("RedMetalDoor/Door").rotation.y;
     }
@@ -267,7 +288,7 @@ class LabScene extends Asset {
     /**
      * Retrieves a node from the scene graph based on its path.
      * @param {string | string[]} path - The path to the node, either as a string with segments separated by "/" or as an array of segment names.
-     * @returns {THREE.Object3D | undefined} The node at the specified path, or undefined if not found.
+     * @returns {Object3D | undefined} The node at the specified path, or undefined if not found.
      */
     getNodePath(path) {
         path = Array.isArray(path) ? path : [path];
