@@ -237,9 +237,6 @@ class LabScene extends Asset {
 
         this.doorAngle = 0;
         this.carouselTheta = 0;
-
-
-
     }
 
        
@@ -265,7 +262,9 @@ class LabScene extends Asset {
         let crabTs = crabs?.children || []
         crabTs.forEach((crabT, i) => {
             const crab = crabT.children[0];
-            crab.rotation.y =  Math.sin(theta + Math.PI * i / crabTs.length ) * maxA;
+            if (crab) {
+                crab.rotation.y =  Math.sin(theta + Math.PI * i / crabTs.length ) * maxA;
+            }
         })
     }
 
@@ -302,8 +301,6 @@ class LabScene extends Asset {
         this.time += dt;
         this.carouselTheta = performance.now() * 0.001;
         this.getNodePath("Water").height += dt * 0.05;
-
-
 
         if (this._openDoor && this.doorAngle < deg(70)) {
             let da = this.doorAngle < deg(60) ? deg(45) : deg(10);

@@ -297,10 +297,11 @@ class WalkThroughScene extends BasicScene {
     }
 
 
-    makeMoveable(object) {
+    makeMoveable(object, options = { radius: 0.07, bounce: 0.35, friction: 0.5 }) {
         object.isSelectable = true;
         // Sphere collider about the coin's half-thickness, so it lands flat on the floor.
-        this.bodies.set(object, new PhysicsBody(this.world, object, { radius: 0.07, bounce: 0.35, friction: 0.5 }));
+        const body = new PhysicsBody(this.world, object, options);
+        this.bodies.set(object, body);
         object.onSelect = () => {
             if (this.selectedObject !== object) {
                 this.dropSelected();
@@ -310,30 +311,10 @@ class WalkThroughScene extends BasicScene {
             this.selectedObject = object;
             this.sounds.play("pickup");
         };
+        return body;
     }
 
-    fixNormalAliasing(){
-        // const maxAniso = this.renderer.capabilities.getMaxAnisotropy();
-        // console.log("Max Anisotropy:", maxAniso);
-        // this.labScene.traverse((obj) => {
-        //     if (!obj.isMesh) return;
-        //     const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-
-        //     mats.forEach((mat) => {
-        //         const tex = mat.normalMap;
-        //         if (tex) {
-        //             tex.magFilter = THREE.LinearFilter;
-        //             tex.minFilter = THREE.LinearMipmapLinearFilter;
-        //             tex.generateMipmaps = true;
-        //             tex.anisotropy = maxAniso;           // sharper at grazing angles, less shimmer
-        //             tex.colorSpace = THREE.NoColorSpace; // normal maps must NOT be sRGB
-        //             tex.needsUpdate = true;
-        //         }
-
-        //     });
-        // });
-    }
-
+  
     async load() {
         let promts = document.createElement("div");
         promts.id = "promts";
@@ -350,9 +331,6 @@ class WalkThroughScene extends BasicScene {
         this.labScene = labScene;
         this.scene.add(labScene);
         await labScene.setupWindowView();
-        window.ls = labScene;
-
-        this.fixNormalAliasing();
 
         this.setupCollisions();
 
@@ -465,6 +443,10 @@ class WalkThroughScene extends BasicScene {
         setTimeout(() => {
             this.sounds.play("click");
         }, t1 * 1000);
+
+        a1.onEnded = () => {
+            this.dropCrabs();
+        }
     }
 
     playCoinInsertAnimation() {
@@ -501,6 +483,57 @@ class WalkThroughScene extends BasicScene {
         // Implement the coin insert animation logic here
     }
 
+
+    dropCrabs() {
+        const crabGroup = this.labScene.getNodePath("CarouselGroup/Crabs");
+        const carousel = this.labScene.getNodePath("CarouselGroup");
+        const CG_pos = carousel.getWorldPosition(new THREE.Vector3());
+
+        let crabs = [...crabGroup?.children].map(c => c.children[0]);
+
+
+        crabs.forEach((crab, i) => {
+            let C_wtr_world = crab.matrixWorld.clone();
+
+            crab.matrixAutoUpdate = false;
+            crab.matrix.copy(C_wtr_world); 
+
+            const C_pos = new THREE.Vector3();
+            C_wtr_world.decompose(C_pos, new THREE.Quaternion(), new THREE.Vector3());
+
+            this.labScene.add(crab);
+
+            // The crab was baked as a solid part of the carousel collider and that
+            // part would follow it around (so it collides with itself). Drop just
+            // that part - cheap, unlike world.refresh() which rebuilds everything.
+            this.world.exclude(crab);
+
+            // Selectable like the coin/key, and walks around on its own once landed.
+            const body = this.makeMoveable(crab, {
+                radius: 0.07, bounce: 0.35, friction: 0.5,
+                localUp: new THREE.Vector3(0, -1, 0),
+                wander: true,
+                walkSpeed: 0.15,
+                localForward: new THREE.Vector3(0, 0, -1), // crabs walk sideways
+            });
+
+            crab.pickupScale = 0.1;
+
+            // Fling outward from the carousel centre (horizontal), with a little upward pop.
+            const outSpeed = 2;
+            const upSpeed = 1;
+            const velocity = C_pos.clone().sub(CG_pos).setY(0).normalize().multiplyScalar(outSpeed);
+            velocity.y = upSpeed;
+
+            console.log("Initial velocity for crab", i, velocity);
+
+            body.drop(null, velocity);
+
+        });
+
+        // console.log("Dropped crabs:", crabs, this.bodies);
+
+    }
 
 
     

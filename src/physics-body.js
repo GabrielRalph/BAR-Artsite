@@ -2,6 +2,7 @@ import { Vector3, Quaternion, Matrix4, Sphere, Euler, MathUtils } from 'three';
 /** @typedef {import('./collision-world.js').CollisionWorld} CollisionWorld */
 
 const _up = new Vector3(0, 1, 0);
+const _down = new Vector3(0, -1, 0);
 const _v = new Vector3();
 const _q = new Quaternion();
 const _m = new Matrix4();
@@ -42,6 +43,17 @@ class PhysicsBody {
     subSteps = 4;
     /** If it falls below this y, it's put back where it was first created. */
     killY = -50;
+    /** Local axis that should point at world up when it lies flat. Use (0,-1,0) to land flipped (z180). */
+    localUp = new Vector3(0, 1, 0);
+
+    /** Once landed, walk around on its own (turning back from walls and ledges). */
+    wander = false;
+    /** Walking speed in m/s. */
+    walkSpeed = 0.1;
+    /** Turning speed in rad/s. */
+    turnSpeed = 3;
+    /** Local axis it walks along. (1,0,0) makes a crab walk sideways. */
+    localForward = new Vector3(0, 0, 1);
 
     position = new Vector3();
     velocity = new Vector3();
@@ -64,6 +76,10 @@ class PhysicsBody {
     #onFloor = false;
     /** The mesh it last landed on, so it can ride it while resting. */
     #floorMesh = null;
+    /** Radians still to turn before walking again (wander mode). */
+    #turnLeft = 0;
+    /** Seconds until it picks a new random direction (wander mode). */
+    #wanderTimer = 0;
 
     /**
      * @param {CollisionWorld} world
@@ -129,6 +145,8 @@ class PhysicsBody {
                 this.quaternion.premultiply(_q);
             }
         }
+
+        if (this.state === 'resting' && this.wander) this.#walk(dt);
 
         if (this.state === 'falling') {
             const step = dt / this.subSteps;
@@ -208,9 +226,73 @@ class PhysicsBody {
         if (normal.y > 0.7) this.#onFloor = true;
     }
 
-    /** Rotate toward local +Y = world up, keeping the current heading. */
+    /** Wander mode: walk along the floor, turning at random and away from obstacles. */
+    #walk(dt) {
+        // Finish any turn in progress before moving.
+        if (this.#turnLeft !== 0) {
+            const a = Math.sign(this.#turnLeft) * Math.min(Math.abs(this.#turnLeft), this.turnSpeed * dt);
+            this.#turnLeft -= a;
+            this.quaternion.premultiply(_q.setFromAxisAngle(_up, a));
+            return;
+        }
+
+        // Every few seconds, wander off in a new direction.
+        this.#wanderTimer -= dt;
+        if (this.#wanderTimer <= 0) {
+            this.#wanderTimer = MathUtils.randFloat(1.5, 4);
+            this.#turnLeft = MathUtils.randFloatSpread(Math.PI);
+            return;
+        }
+
+        // Heading flattened onto the floor.
+        _dir.copy(this.localForward).applyQuaternion(this.quaternion).setY(0);
+        if (_dir.lengthSq() < 1e-6) return;
+        _dir.normalize();
+        const step = this.walkSpeed * dt;
+
+        // Wall ahead, or no floor ahead (a ledge)? Turn around.
+        if (this.#world.raycast(this.position, _dir, this.radius + step + 0.02)) return this.#turnAround();
+        _v.copy(this.position).addScaledVector(_dir, this.radius + step);
+        if (!this.#world.raycast(_v, _down, this.radius * 3)) return this.#turnAround();
+
+        // Step forward, pressed slightly into the floor so it stays in contact.
+        this.#prev.copy(this.position);
+        this.position.addScaledVector(_dir, step);
+        this.position.y -= 0.005;
+        this.#sphere.set(this.position, this.radius);
+        const contacts = this.#world.collideSphere(this.#sphere, this.#prev);
+        this.position.copy(this.#sphere.center);
+
+        let onFloor = false;
+        let bumped = false;
+        for (const { normal, mesh } of contacts) {
+            if (normal.y > 0.7) {
+                onFloor = true;
+                this.#floorMesh = mesh;
+            } else if (normal.dot(_dir) < -0.5) {
+                bumped = true; // something low the forward ray missed
+            }
+        }
+
+        if (!onFloor) {
+            // The floor went away under it: fall.
+            this.velocity.copy(_dir).multiplyScalar(this.walkSpeed);
+            this.angularVelocity.set(0, 0, 0);
+            this.#floorMesh = null;
+            this.state = 'falling';
+        } else if (bumped) {
+            this.#turnAround();
+        }
+    }
+
+    #turnAround() {
+        this.#turnLeft = Math.PI + MathUtils.randFloatSpread(1);
+        this.#wanderTimer = MathUtils.randFloat(1.5, 4);
+    }
+
+    /** Rotate toward `localUp` = world up, keeping the current heading. */
     #flatten(amount) {
-        const localUp = _v.copy(_up).applyQuaternion(this.quaternion);
+        const localUp = _v.copy(this.localUp).applyQuaternion(this.quaternion);
         _q.setFromUnitVectors(localUp, _up).multiply(this.quaternion);
         this.quaternion.slerp(_q, amount);
     }

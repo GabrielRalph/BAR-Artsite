@@ -81,6 +81,8 @@ class CollisionWorld {
     #parts = [];
     /** @type {Map<Mesh, Part>} */
     #partsByMesh = new Map();
+    /** @type {Set<Mesh>} Meshes baked into the static octree. */
+    #staticMeshes = new Set();
     #dirty = false;
 
     /**
@@ -101,6 +103,30 @@ class CollisionWorld {
     remove(object) {
         this.#obstacles.delete(object);
         this.#dirty = true;
+        return this;
+    }
+
+    /**
+     * Stops the meshes under `object` from colliding, e.g. when they're
+     * detached from a moving obstacle. Dynamic parts are dropped instantly
+     * without rebuilding anything. Static meshes need a rebuild, so this only
+     * marks the world dirty if one of them was baked into the static octree.
+     * @param {Object3D} object
+     */
+    exclude(object) {
+        let needsRebuild = false;
+        object.traverse((mesh) => {
+            if (!mesh.isMesh) return;
+            mesh.userData.noCollide = true; // keep it out of future rebuilds
+            const part = this.#partsByMesh.get(mesh);
+            if (part) {
+                this.#partsByMesh.delete(mesh);
+                this.#parts.splice(this.#parts.indexOf(part), 1);
+            } else if (this.#staticMeshes.has(mesh)) {
+                needsRebuild = true;
+            }
+        });
+        if (needsRebuild) this.#dirty = true;
         return this;
     }
 
@@ -268,13 +294,17 @@ class CollisionWorld {
         let hasTriangles = false;
         this.#parts = [];
         this.#partsByMesh.clear();
+        this.#staticMeshes.clear();
 
         for (const [obstacle, { dynamic }] of this.#obstacles) {
             obstacle.updateWorldMatrix(true, true);
             obstacle.traverse((mesh) => {
                 if (!mesh.isMesh || mesh.userData.noCollide) return;
                 if (!dynamic) {
-                    if (addMeshTriangles(octree, mesh, obstacle)) hasTriangles = true;
+                    if (addMeshTriangles(octree, mesh, obstacle)) {
+                        hasTriangles = true;
+                        this.#staticMeshes.add(mesh);
+                    }
                     return;
                 }
                 const partOctree = new Octree();
