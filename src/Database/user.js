@@ -20,7 +20,7 @@ addAuthChangeListener(async(user) => {
 
             const location = await getIPLocation();
             updateInfo({
-                postcode: location.postCode,
+                postCode: location.postCode,
                 countryCode: location.countryCode
             });
 
