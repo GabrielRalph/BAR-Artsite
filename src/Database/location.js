@@ -2859,21 +2859,19 @@ const TIMEZONES = {
 async function getIPLocation(){
     let location = {};
     try {
-        // Get IP Address
-        let url = `https://api.ipify.org?format=json`;
-        let {ip} = (await (await fetch(url)).json());
+        // Looks up the caller's own IP and its location in one request.
+        // (ip-api.com only serves HTTPS on paid plans, so it's blocked on an HTTPS page.)
+        let info = await (await fetch(`https://ipapi.co/json/`)).json();
+        if (info.error) throw new Error(`ipapi.co: ${info.reason}`);
 
-        // Get IP Adress location
-        let url2 = `http://ip-api.com/json/${ip}`
-        let info = await (await fetch(url2)).json();
-
+        console.log(info);
         location = {
             city: info.city,
-            country: info.country,
-            countryCode: info.countryCode,
-            postCode: info.zip,
-            state: info.regionName,
-            ip: ip
+            country: info.country_name,
+            countryCode: info.country_code,
+            postCode: info.postal,
+            state: info.region,
+            ip: info.ip
         }
     } catch (e) {
         console.log(e);
