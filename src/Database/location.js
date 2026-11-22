@@ -7,7 +7,6 @@ async function getIPLocation(){
         let info = await (await fetch(`https://ipapi.co/json/`)).json();
         if (info.error) throw new Error(`ipapi.co: ${info.reason}`);
 
-        console.log(info);
         location = {
             city: info.city,
             country: info.country_name,
