@@ -1,10 +1,11 @@
-import { addAuthChangeListener, getUID, initialise as init, onValue, ref, set, signInAnonymously } from "./firebase";
+import { addAuthChangeListener, getUID, initialise as init, onValue, ref, set, signInAnonymously, update } from "./firebase";
+import { getIPLocation } from "./location";
 
 let endListener = null;
 let lUID = null;
 let ignore = false;
 let lastData = null;
-addAuthChangeListener((user) => {
+addAuthChangeListener(async(user) => {
     if (!user) {
         signInAnonymously();
     } else {
@@ -16,22 +17,21 @@ addAuthChangeListener((user) => {
             endListener = onValue(ref("borrowed-blue/users/" + lUID), (snapshot) => {
                 lastData = snapshot.val();
             });
+
+            const location = await getIPLocation();
+            updateInfo({
+                postcode: location.postCode,
+                countryCode: location.countryCode
+            });
+
         }
     }
 });
 
 
-function updateInfo({
-    name = "",
-    postcode = "",
-    countryCode = ""
-}) {
+function updateInfo(info) {
     const userRef = ref("borrowed-blue/users/" + getUID());
-    userRef.update({
-        name,
-        postcode,
-        countryCode
-    });
+    update(userRef, info);
 }
 
 

@@ -15,6 +15,7 @@ import { CollisionWorld } from "../collision-world.js";
 import { PhysicsBody } from "../physics-body.js";
 import { SoundSprites } from "../sound-sprites.js";
 import { WaypointAnimation } from "../waypoint-animation.js";
+import { updateInfo } from "../Database/user.js";
 
 
 
@@ -259,6 +260,7 @@ class LabGameScene extends BasicScene {
             if (this.spinCarousel) {
                 this.labScene.openDoor();
                 this.sounds.play("door");
+                updateInfo({"key-b": 7243});
             }
         };
 
@@ -345,6 +347,7 @@ class LabGameScene extends BasicScene {
         a1.onEnded = () => {
             this.dropCrabs();
         }
+        updateInfo({"key-c": 4835});
     }
 
     playCoinInsertAnimation() {
@@ -379,6 +382,8 @@ class LabGameScene extends BasicScene {
                 }
             });
         this.animations.push(coinAnimation);
+
+        updateInfo({"key-a": 8213});
     }
 
     dropCrabs() {

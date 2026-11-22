@@ -21,7 +21,6 @@ class SoundSprites {
         if (markerName in this.#timesByMarker) {
             // Calculate duration and schedule exact playback
             const [t0, t1] = this.#timesByMarker[markerName];
-            console.log(`Playing marker ${markerName} from ${t0} to ${t1}`);
             source.start(0, t0, t1-t0);
         }
     }
