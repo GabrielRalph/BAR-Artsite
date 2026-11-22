@@ -1,128 +1,25 @@
-import { BasicScene } from "./basic-scene";
+import { BasicScene } from "../basic-scene.js";
 import * as THREE from "three";
-import { Keyboard } from "./keyboard";
-import { TouchControls } from "./touch-controls";
+import { Keyboard } from "../keyboard.js";
+import { TouchControls } from "../touch-controls.js";
 
-import { LabScene } from "./a2.js";
+import { LabModel } from "./lab-model.js";
 
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { SelectiveGlowPass } from "./glow-pass.js";
-import { UnderwaterPass } from "./underwater-pass.js";
-import { FirstPersonPlayer } from "./fpp.js";
-import { CollisionWorld } from "./collision-world.js";
-import { PhysicsBody } from "./physics-body.js";
-import { SoundSprites } from "./sound-sprites.js";
+import { SelectiveGlowPass } from "../glow-pass.js";
+import { UnderwaterPass } from "../underwater-pass.js";
+import { FirstPersonPlayer } from "../fpp.js";
+import { CollisionWorld } from "../collision-world.js";
+import { PhysicsBody } from "../physics-body.js";
+import { SoundSprites } from "../sound-sprites.js";
+import { WaypointAnimation } from "../waypoint-animation.js";
 
 
 
-class WaypointAnimation {
-    #waypoints = [];
-    #time = 0;
-    #ended = false;
 
-    constructor(object) {
-        this.object = object;
-    }
-
-    /**
-     * @param {...[THREE.Vector3, THREE.Euler, THREE.Vector3, number, (t: number) => number]} args
-     * @overload
-     * @param {...[THREE.Matrix4, number, (t: number) => number]} args
-     */
-    add(...args) {
-        let rotation, position, scale, duration, timingFunction;
-        if (args[0] instanceof THREE.Matrix4) {
-            position= new THREE.Vector3();
-            rotation = new THREE.Euler();
-            scale = new THREE.Vector3();
-            args[0].decompose(position, rotation, scale);
-            duration = args[1];
-            timingFunction = args[2] ?? ((t) => t);
-            
-        } else if (args[0] instanceof THREE.Vector3) {
-            position = args[0];
-            rotation = args[1];
-            scale = args[2];
-            duration = args[3];
-            timingFunction = args[4] ?? ((t) => t);
-        }
-
-        const waypoint = { position, rotation, scale, duration, timingFunction };
-        this.#waypoints.push(waypoint);
-
-        return this;
-    }
-
-    get totalDuration() {
-        return this.#waypoints.slice(1).reduce((sum, wp) => sum + wp.duration, 0);
-    }
-
-    getMatrixAt(t) {
-        if (this.#waypoints.length === 0) return new THREE.Matrix4();
-        else if (this.#waypoints.length === 1 || t < 0) {
-            const wp = this.#waypoints[0];
-            const m = new THREE.Matrix4();
-            m.makeRotationFromEuler(wp.rotation);
-            m.setPosition(wp.position);
-            m.scale(wp.scale);
-            return m;
-        } else {
-            let durations = this.#waypoints.slice(1).map(wp => wp.duration);
-            let cumlativeDurations = durations.map((d, i) => durations.slice(0, i + 1).reduce((a, b) => a + b, 0));
-            if (t > cumlativeDurations[cumlativeDurations.length - 1]) {
-                const wp = this.#waypoints[this.#waypoints.length - 1];
-                const m = new THREE.Matrix4();
-                m.makeRotationFromEuler(wp.rotation);
-                m.setPosition(wp.position);
-                m.scale(wp.scale);
-                return m;
-            } else {
-                let i = cumlativeDurations.findIndex(cd => t < cd);
-                const wp0 = this.#waypoints[i];
-                const wp1 = this.#waypoints[i + 1];
-                const t0 = i === 0 ? 0 : cumlativeDurations[i - 1];
-                const localT = (t - t0) / wp1.duration;
-
-                const easedT = wp1.timingFunction(localT);
-
-                const position = new THREE.Vector3().lerpVectors(wp0.position, wp1.position, easedT);
-                const rotation = new THREE.Euler().setFromQuaternion(
-                    new THREE.Quaternion().slerpQuaternions(
-                        new THREE.Quaternion().setFromEuler(wp0.rotation),
-                        new THREE.Quaternion().setFromEuler(wp1.rotation),
-                        easedT
-                    )
-                );
-                const scale = new THREE.Vector3().lerpVectors(wp0.scale, wp1.scale, easedT);
-                const m = new THREE.Matrix4();
-                m.makeRotationFromEuler(rotation);
-                m.setPosition(position);
-                m.scale(scale);
-                return m;
-            }
-        }
-    }
-
-    update(dt) {
-        this.#time += dt;
-        this.object.matrixAutoUpdate = false;
-        this.object.matrix.copy(this.getMatrixAt(this.#time));
-
-        if (this.#time > this.totalDuration) {
-            if (!this.#ended) {
-                this.onEnded?.();
-                this.#ended = true;
-            }
-        }
-
-    }
-
-}
-
-
-class WalkThroughScene extends BasicScene {
+class LabGameScene extends BasicScene {
 
     lastT = null;
     selectedObject = null;
@@ -147,6 +44,12 @@ class WalkThroughScene extends BasicScene {
         this.touch.onTap(() => this.interact());
 
         this.setupPostProcessing();
+        this.build();
+
+        this.crossHair = document.createElement("img");
+        this.crossHair.src = import.meta.resolve("../../assets/cross-hair.svg");
+        this.crossHair.className = "cross-hair";
+        this.appendChild(this.crossHair);
     }
 
     setupPostProcessing() {
@@ -272,9 +175,6 @@ class WalkThroughScene extends BasicScene {
         }
     }
 
-    
-    
-
     rayCastFromCenter() {
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
@@ -315,22 +215,22 @@ class WalkThroughScene extends BasicScene {
     }
 
   
-    async load() {
+    /**
+     * Builds the scene from the assets fetched by LabGameScene.load(),
+     * which must have finished before a LabGameScene is constructed.
+     */
+    build() {
         let promts = document.createElement("div");
         promts.id = "promts";
         this.appendChild(promts);
         this.prompts = promts;
-
-
-        this.sounds = await SoundSprites.load(import.meta.resolve("../assets/SFX"))
         // Clicks on the prompt bubble up to the body click handler below, and
         // taps are handled by TouchControls, so it needs no listener of its own.
 
-        await LabScene.load();
-        const labScene = new LabScene();
+        const labScene = new LabModel();
         this.labScene = labScene;
         this.scene.add(labScene);
-        await labScene.setupWindowView();
+        labScene.setupWindowView();
 
         this.setupCollisions();
 
@@ -426,24 +326,22 @@ class WalkThroughScene extends BasicScene {
 
         carousel.add(key);
         const a1 = new WaypointAnimation(key)
-            .add(m1, 10)
-            .add(m2, t1)
-            .add(m3, t2);
+            .add({matrix: m1})
+            .add({
+                matrix: m2,  duration: t1,
+                onStart: this.sounds.play.bind(this.sounds, "click")
+            }).add({matrix: m3, duration: t2});
         this.animations.push(a1); 
 
         const khb1 = keyholeB.matrix;
         const khb2 = keyholeB.matrix.clone();
         khb2.multiply(new THREE.Matrix4().makeRotationY(Math.PI / 2));
         const a2 = new WaypointAnimation(keyholeB)
-            .add(khb1, 10)
-            .add(khb1, t1)
-            .add(khb2, t2);
+            .add({matrix: khb1})
+            .add({matrix: khb1, duration: t1})
+            .add({matrix: khb2, duration: t2});
         this.animations.push(a2);
-
-        setTimeout(() => {
-            this.sounds.play("click");
-        }, t1 * 1000);
-
+        
         a1.onEnded = () => {
             this.dropCrabs();
         }
@@ -459,30 +357,29 @@ class WalkThroughScene extends BasicScene {
         coin.isSelectable = false;
 
         const coinAnimation = new WaypointAnimation(coin);
-        coinAnimation.add(coin.matrix, 10); // Example waypoint, adjust as needed
-
+        
         const pos2 = new THREE.Vector3(3.179, 1.62, 2.93);
         const rotation = new THREE.Euler(Math.PI/2, 0, -Math.PI/2); // Example rotation, adjust as needed
-        coinAnimation.add(pos2, rotation, new THREE.Vector3(1.2, 1.2, 1.2),  1, (t) => t**0.5); // Example waypoint, adjust as needed
-
         const rot2 = new THREE.Euler(3 * Math.PI/4, 0, -Math.PI/2);
-        coinAnimation.add(pos2.clone().add(new THREE.Vector3(0, -0.01, 0.1)), rot2, new THREE.Vector3(1.2, 1.2, 1.2), 0.3);
+        coinAnimation.add({matrix: coin.matrix})
+            .add({
+                position: pos2, rotation, 
+                scale: 1.2, 
+                duration: 1, 
+                timingFunction: (t) => t**0.5,
+                onStart: this.sounds.play.bind(this.sounds, "coinslot")
+            }).add({
+                position: pos2.clone().add(new THREE.Vector3(0, -0.01, 0.1)),
+                rotation: rot2,
+                scale: 1.2,
+                duration: 0.3,
+                onEnd: () => {
+                    setTimeout(this.sounds.play.bind(this.sounds, "sparkle"), 1000)
+                    this.spinCarousel = true;
+                }
+            });
         this.animations.push(coinAnimation);
-
-        coinAnimation.onEnded = () => {
-            this.spinCarousel = true;
-        };
-        
-
-        setTimeout(() => {
-            this.sounds.play("coinslot");
-        }, 1000);
-        setTimeout(() => {
-            this.sounds.play("sparkle")
-        }, 1500)
-        // Implement the coin insert animation logic here
     }
-
 
     dropCrabs() {
         const crabGroup = this.labScene.getNodePath("CarouselGroup/Crabs");
@@ -535,8 +432,6 @@ class WalkThroughScene extends BasicScene {
 
     }
 
-
-    
 
 
     /** Click / "e": drop what we're holding, otherwise try to pick something up. */
@@ -603,8 +498,6 @@ class WalkThroughScene extends BasicScene {
     }
 
 
-
-
     updateMotion() {
         const direction = new THREE.Vector2();
         if (this.keyboard.isDown("w") || this.keyboard.isDown("ArrowUp")) {
@@ -668,6 +561,24 @@ class WalkThroughScene extends BasicScene {
         this.updateUnderwater();
     }
 
+    get sounds() {
+        return LabGameScene.soundSprites;
+    }
+
+    /**
+     * Fetches everything the Lab needs (sound sprites + the lab model).
+     * Safe to call more than once; every call waits for the same load.
+     */
+    static load() {
+        return this.loading ??= (async () => {
+            const [sounds] = await Promise.all([
+                SoundSprites.load(import.meta.resolve("../../assets/SFX/sound-sprites.smp3")),
+                LabModel.load(),
+            ]);
+            this.soundSprites = sounds;
+        })();
+    }
+
     /** Turns the underwater look on when the camera is (or is about to go) below the water surface. */
     updateUnderwater() {
         const water = this.labScene?.getNodePath("Water");
@@ -676,7 +587,6 @@ class WalkThroughScene extends BasicScene {
         this.underwaterPass.enabled = water.updateForCamera(this.camera);
         this.underwaterPass.waterY = water.worldHeight;
     }
-
 }
 
-customElements.define("basic-scene", WalkThroughScene);
+export { LabGameScene };

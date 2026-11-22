@@ -3,67 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BAR ARTSITE</title>
+    <title>Borrowed Blue</title>
     <meta name = "robots" content="noindex, nofollow">
-    <link rel="icon" type="image/png" href="assets/favicon.png">
+    <link rel="icon" type="image/png" href="./assets/favicon.png">
+
+    <link rel="stylesheet" href="./assets/Fonts/fonts.css">
+
+    <style>
+        html {
+            background: black;
+        }
+
+        body {
+            font-family: 'providence-sans';
+        }
+
+        /* ---------- Loading screen (the Lounge sets body[loaded]) ---------- */
+        body:not([loaded]) * {
+            display: none !important;
+        }
+
+        body:after {
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.3s ease-in-out opacity;
+            position: fixed;
+            inset: 0;
+            content: " ";
+            background-image: linear-gradient(#4f5ccf, #191619);
+            z-index: 9999;
+        }
+
+        body:not([loaded])::after {
+            opacity: 1;
+        }
+
+        /* ---------- Zone transition ---------- */
+        .zone-fader {
+            position: fixed;
+            inset: 0;
+            background: black;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s ease-in-out;
+            z-index: 100000;
+        }
+        .zone-fader[shown] {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* ---------- Lab zone ---------- */
+        game-main[zone="lab"] {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            font-size: 3em;
+            letter-spacing: 0.3em;
+            word-break: break-all;
+            text-align: justify;
+            color: rgb(242, 241, 241);
+        }
+        body:has(game-main[zone="lab"]) {
+            overflow: hidden;
+        }
+
+        lab-scene {
+            display: block;
+            position: fixed;
+            /* Fill exactly the visible viewport (the same box the fixed crosshair
+               is centred in), so the raycast lines up with the crosshair on mobile. */
+            inset: 0;
+            overflow: hidden;
+        }
+        lab-scene canvas {
+            display: block;
+        }
+
+        #promts {
+            border-radius: 1em;
+            position: absolute;
+            top: 1em;
+            left: 50%;
+            background: #3e3e3e70;
+            z-index: 10000;
+            letter-spacing: 0.05em;
+            padding: 0.5em;
+            transform: translate(-50%, 0);
+            transition: 0.3s ease-in-out opacity;
+        }
+        #promts:empty {
+            opacity: 0;
+        }
+
+        .cross-hair {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            transform: translate(-50%, -50%);
+            z-index: 10000;
+            /* Let taps/clicks on the crosshair reach the scene underneath. */
+            pointer-events: none;
+        }
+    </style>
 </head>
+
 <body>
-    Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon Coming Soon 
-    <basic-scene></basic-scene>
-
-    <img src = "./assets/cross-hair.svg" class = "cross-hair"></img>
+    <game-main></game-main>
 </body>
-<style> 
-body {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    font-size: 3em;
-    letter-spacing: 0.3em;
-    word-break: break-all;
-    text-align: justify;
-    overflow: hidden;
-    color: rgb(242, 241, 241);
-}
-    basic-scene {
-        display: block;
-        position: fixed;
-        /* Fill exactly the visible viewport (the same box the fixed crosshair
-           is centred in). 100vh on mobile includes the area behind the address
-           bar, which pushed the canvas centre - and the raycast - below the crosshair. */
-        inset: 0;
-        overflow: hidden;
-    }
-    basic-scene canvas {
-        display: block;
-    }
 
-    #promts {
-        border-radius: 1em;
-        position: absolute;
-        top: 1em;
-        left: 50%;
-        background: #3e3e3e70;
-        z-index: 10000;
-        letter-spacing: 0.05em;
-        padding: 0.5em;
-        transform: translate(-50%, 0);
-        transition: 0.3s ease-in-out opacity;
-    }
-    #promts:empty {
-        opacity: 0;
-    }
-
-    .cross-hair {
-        position: fixed;
-        color: black;
-        top: 50%;
-        left: 50%;
-        width: 20px;
-        height: 20px;
-        transform: translate(-50%, -50%);
-        z-index: 10000;
-        /* Let taps/clicks on the crosshair reach the scene underneath. */
-        pointer-events: none;
-    }
-</style>
-<script src="./src/index.js" type = "module"></script>
+<script type="module">
+    import { GameMain } from "./src/game-main.js";
+    await GameMain.load();
+</script>
 </html>

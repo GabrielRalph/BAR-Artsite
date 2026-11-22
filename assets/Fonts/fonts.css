@@ -2,8 +2,8 @@
 
 @font-face {
   font-family: 'providence-sans';
-  src: url('./ProvidenceSans/webfont.woff2') format('woff2'),
-       url('./ProvidenceSans/webfont.woff') format('woff');
-  font-weight: 400;
+  src: url('./ProvidenceSans/font.woff2') format('woff2'),
+       url('./ProvidenceSans/font.woff') format('woff');
+  font-weight: 500;
   font-style: normal;
 }

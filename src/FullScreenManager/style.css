@@ -1,0 +1,52 @@
+.fs-spacer { 
+    height: 0; 
+    pointer-events: none; 
+}
+
+html.fs-scroll .fs-spacer,
+html.fs-scroll.fs-locked .fs-spacer {
+     height: 300vh; 
+}
+
+.fs-probe {
+    position: fixed; 
+    top: 0; 
+    left: 0;
+    width: 0;
+    height: 100vh; 
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.fs-hint {
+    position: fixed; 
+    inset: 0;
+    z-index: 100000;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 0.6em;
+    background: rgba(10, 10, 20, 0.55);
+    color: #fff;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.04em;
+    text-align: center;
+    pointer-events: none; /* swipes pass through to the document */
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+html.fs-scroll:not(.fs-locked) .fs-hint { 
+    opacity: 1; 
+}
+
+.fs-hint svg {
+    width: 2.4em; height: 2.4em;
+    animation: fs-swipe 1.4s ease-in-out infinite;
+}
+
+@keyframes fs-swipe {
+    0%   { transform: translateY(30%);  opacity: 0; }
+    30%  { opacity: 1; }
+    100% { transform: translateY(-50%); opacity: 0; }
+}

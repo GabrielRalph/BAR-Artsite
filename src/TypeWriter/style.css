@@ -1,0 +1,10 @@
+type-writer {
+    display: block;
+}
+type-writer s {
+    text-decoration: none;
+    opacity: 0;
+}
+type-writer s[on] {
+    opacity: 1;
+}

@@ -2,8 +2,9 @@ import * as THREE from "three"
 
 export class BasicScene extends HTMLElement {
     #rendering = false;
+    #updateAbles = [];
 
-    constructor() {
+    constructor(scene) {
         super();
 
         const { width, height } = this.getViewportSize();
@@ -24,9 +25,8 @@ export class BasicScene extends HTMLElement {
 
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFShadowMap;
-
         this.renderer.setPixelRatio(
-            Math.min(window.devicePixelRatio, 2)
+            window.devicePixelRatio
         );
 
         this.renderer.setSize(
@@ -34,16 +34,18 @@ export class BasicScene extends HTMLElement {
             height
         );
 
-        this.scene = new THREE.Scene();
-        this.mainGroup = new THREE.Group();
-        this.scene.add(this.mainGroup);
-        this.setupLighting();
+        if (scene instanceof THREE.Scene) {
+            this.scene = scene;
+        } else {
+            this.scene = new THREE.Scene();
+            this.mainGroup = new THREE.Group();
+            this.scene.add(this.mainGroup);
+        }
+
 
         this.resizeObserver = new ResizeObserver(() => this.resize());
         this.resizeObserver.observe(this);
 
-        this.appendChild(this.renderer.domElement);
-        this.load();
     }
 
 
@@ -52,52 +54,55 @@ export class BasicScene extends HTMLElement {
         this.mainGroup.rotation.x += deltaY;
     }
 
-
-    async load() {
-    }
-
-
     connectedCallback() {
+        this.appendChild(this.renderer.domElement);
         this.startRenderingLoop();
     }
 
+    addUpdater(updater) {
+        if (updater instanceof Function || (updater && updater.update instanceof Function)) {
+            this.#updateAbles.push(updater);
+        }
+    }
 
-    setupLighting() {
-        // this.ambientLight = new THREE.HemisphereLight(
-        //     0xffffff,
-        //     0xffffff,
-        //     .1
-        // );
-        // this.scene.add(this.ambientLight);
-
-        // // scene background white
-        // // this.scene.background = new THREE.Color(0xffffff);
-        // this.directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-        // this.directionalLight.position.set(5, 10, 7.5);
-        // this.scene.add(this.directionalLight);
+    updateUpdaters(dt) {
+        for (const updater of this.#updateAbles) {
+            if (updater instanceof Function) {
+                updater(dt);
+            } else if (updater && updater.update instanceof Function) {
+                updater.update(dt);
+            }
+        }
     }
 
 
-    beforeRender() {
 
+    beforeRender(dt) {
+        this.updateUpdaters(dt);
     }
-    render() {
+
+    render(dt) {
         this.renderer.render(this.scene, this.camera);
     }
-
 
     async startRenderingLoop() {
         if (this.#rendering) return;
         this.#rendering = true;
+        let then = performance.now() / 1000;
         while (this.#rendering) {
-            this.beforeRender();
-            this.render();
+            let now = performance.now() / 1000;
+            let dt = now - then;
+            then = now;
+            this.beforeRender(dt);
+            this.render(dt);
             await new Promise(requestAnimationFrame);
         }
     }
+
     stopRenderingLoop() {
         this.#rendering = false;
     }
+
 
 
     getViewportSize() {
@@ -115,5 +120,10 @@ export class BasicScene extends HTMLElement {
             width,
             height
         );
+    }
+
+
+    static define(name = "basic-scene") {
+        customElements.define(name, this);
     }
 }

@@ -26,8 +26,8 @@ class SoundSprites {
         }
     }
 
-    static async load(dir, audioCtx = new AudioContext()) {
-        const res = await fetch(`${dir}/sound-sprites.smp3`);
+    static async load(url, audioCtx = new AudioContext()) {
+        const res = await fetch(url);
         const arrayBuffer = await res.arrayBuffer();
 
         const td = new TextDecoder(); 
