@@ -118,7 +118,8 @@ class GameMain extends HTMLElement {
     /** Loads everything the first zone needs and defines the custom elements. */
     static async load() {
         await LoungeSceneGame.load();
-        SvgPlus.defineHTMLElement(LoungeSceneGame);
+        // explicit tag name: the build minifies class names, so it can't be derived from LoungeSceneGame.name
+        SvgPlus.defineHTMLElement(LoungeSceneGame, "lounge-scene-game");
         customElements.define("game-main", GameMain);
     }
 }
