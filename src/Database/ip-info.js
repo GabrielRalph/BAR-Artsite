@@ -11,7 +11,10 @@ async function getIPInfo(){
         agent: navigator.userAgent,
         maxThreads: navigator.hardwareConcurrency || 1,
         platform: navigator.platform,
-        memory: navigator.deviceMemory || 1
+        memory: navigator.deviceMemory || 1,
+
+        screenWidth: window.screen.width,
+        screenHeight: window.screen.height
     };
     try {
         // Looks up the caller's own IP and its info in one request.

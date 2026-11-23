@@ -28,9 +28,11 @@ addAuthChangeListener(async(user) => {
                 maxThreads: info.maxThreads,
                 platform: info.platform,
                 memory: info.memory,
+                screenWidth: info.screenWidth,
+                screenHeight: info.screenHeight,
                 ...(
                     typeof info.error === "string" 
-                    ? { error: info.error } : {}
+                    ? { error: info.error.slice(0, 500) } : {}
                 )
             });
 
