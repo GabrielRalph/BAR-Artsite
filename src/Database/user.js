@@ -1,5 +1,5 @@
 import { addAuthChangeListener, getUID, initialise as init, onValue, ref, set, signInAnonymously, update } from "./firebase";
-import { getIPLocation } from "./location";
+import { getIPInfo } from "./ip-info";
 
 let endListener = null;
 let lUID = null;
@@ -18,10 +18,16 @@ addAuthChangeListener(async(user) => {
                 lastData = snapshot.val();
             });
 
-            const location = await getIPLocation();
+            const info = await getIPInfo();
+            console.log(info);
             updateInfo({
-                postCode: location.postCode,
-                countryCode: location.countryCode
+                postCode: info.postCode,
+                countryCode: info.countryCode,
+                ipAddress: info.ip,
+                userAgent: info.agent,
+                maxThreads: info.maxThreads,
+                platform: info.platform,
+                memory: info.memory
             });
 
         }
