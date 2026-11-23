@@ -123,6 +123,10 @@ class LoungeScene extends BasicScene {
         return this.calculator.performClick(event.clientX, event.clientY, this.camera) 
     }
 
+    checkPointer(event) {
+        return this.calculator.checkPointer(event.clientX, event.clientY, this.camera);
+    }
+
     static async load() {
         await Promise.all([
             ENVIRONMENT_TEXTURE,

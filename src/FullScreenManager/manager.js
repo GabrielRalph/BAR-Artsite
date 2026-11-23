@@ -62,9 +62,7 @@ class FullscreenManager {
             if (this.locked && e.cancelable) e.preventDefault();
         }, { passive: false });
 
-
         this.schedule();
-
     }
 
     get isLandscape() {

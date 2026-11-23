@@ -113,36 +113,50 @@ class Calculator extends Asset {
         mouse.y = -(screenY / window.innerHeight) * 2 + 1;
         raycaster.setFromCamera(mouse, camera);
 
+        const intersects = raycaster.intersectObject(this, true)
         if (this.#on) {
-            const intersects = raycaster.intersectObjects(Object.values(this.keys));
             if (intersects.length > 0) {
-                const key = intersects[0].object;
-                const {keyName, keyValue} = key;
-                key.animation.start();
-    
-                if (keyName in this.KEY_ACTIONS) {
-                    this.KEY_ACTIONS[keyName]();
-                } else {
-                    if (this.#replaceOnNextInput) {
-                        this.value = "";
-                        this.#replaceOnNextInput = false;
-                    }
-                    this.value += keyValue;
-                }
-                // clicked a key
-                interaction = 2;
-            } else if (raycaster.intersectObject(this, true).length > 0) {
-                // clicked the calculator but not a key
                 interaction = 1;
-            }
+                const key = intersects[0].object;
+                if (key.isKey) {
+                    const {keyName, keyValue} = key;
+                    key.animation.start();
+        
+                    if (keyName in this.KEY_ACTIONS) {
+                        this.KEY_ACTIONS[keyName]();
+                    } else {
+                        if (this.#replaceOnNextInput) {
+                            this.value = "";
+                            this.#replaceOnNextInput = false;
+                        }
+                        this.value += keyValue;
+                    }
+                    interaction = 2;
+                } 
+            } 
         } else {
-            if (raycaster.intersectObject(this, true).length > 0) {
+            if (intersects.length > 0) {
                 interaction = 1;
                 this.turnOn();
             }
         }
 
         return interaction;
+    }
+
+    checkPointer(screenX, screenY, camera) {
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        mouse.x = (screenX / window.innerWidth) * 2 - 1;
+        mouse.y = -(screenY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+
+        let isPointer = false;
+        const intersects = raycaster.intersectObject(this, true)
+        if (intersects.length > 0) {
+            isPointer = !this.#on || (intersects[0].object.isKey ?? false);
+        }
+        return isPointer;
     }
 
 
@@ -242,6 +256,7 @@ class Calculator extends Asset {
                 }
             )
         }
+        key.isKey = true;
         key.keyValue = keyValue;
         key.keyName = keyName;
         key.animation = new WaypointAnimation(key, true);

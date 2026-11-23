@@ -66,6 +66,9 @@ class LoungeSceneGame extends SvgPlus {
     #seenLetter = false;
     #seenNote = false;
     #mode = null;
+
+     /** Aborting this removes the window listeners added in build(). */
+    #listeners = new AbortController();
    
     constructor(el) {
         super(el);
@@ -107,8 +110,7 @@ class LoungeSceneGame extends SvgPlus {
     get mode() { return this.#mode; }
 
 
-    /** Aborting this removes the window listeners added in build(). */
-    #listeners = new AbortController();
+   
 
     onconnect() {
         this.build();
@@ -137,7 +139,7 @@ class LoungeSceneGame extends SvgPlus {
 
             // BUILD THE INITIAL PROMPT
             this.initialPrompt = this.createChild(Prompt, {
-                class: "prompt initial"
+                class: "prompt initial clickable"
             });
             this.initialPromptMessage = this.initialPrompt.content
             .createChild("type-writer", {
@@ -161,7 +163,7 @@ class LoungeSceneGame extends SvgPlus {
             // BUILD THE ENVELOPE IMAGE
             this.bagGroup.createChild("img", {
                 src: ASSETS + "/Lounge/envelope.webp",
-                class: "envelope",
+                class: "envelope clickable",
                 events: {
                     click: () => this.mode = "letter"
                 }
@@ -170,7 +172,7 @@ class LoungeSceneGame extends SvgPlus {
             //BUILD THE NOTE PAPER IMAGE
             this.bagGroup.createChild("img", {
                 src: ASSETS + "/Lounge/folded-paper.webp",
-                class: "note-paper",
+                class: "note-paper clickable",
                 events: {
                     click: () => this.mode = "note"
                 }
@@ -232,7 +234,7 @@ class LoungeSceneGame extends SvgPlus {
 
             // BUILD THE LETTER
             this.letter =this.createChild(PaperPage, {
-                    class: "letter",
+                    class: "letter clickable",
                     events: { click: () => this.mode = "open" }
                 }, 
                 LETTER_MESSAGE,
@@ -243,7 +245,7 @@ class LoungeSceneGame extends SvgPlus {
 
              // BUILD THE NOTE
             this.note =this.createChild(PaperPage, {
-                    class: "note",
+                    class: "note clickable",
                     events: { click: () => this.mode = "open" }
                 },
                 `<img src="${ASSETS + "/Lounge/massbleed.webp"}" alt="Note Paper">
@@ -283,6 +285,41 @@ class LoungeSceneGame extends SvgPlus {
             this.keyFoundPrompt = this.createChild(Prompt, {
                 class: "prompt key-found",
             });
+
+            this.cursor = this.createChild("div", {
+                class: "cursor",
+                mode: "default"
+            });
+            this.cursor.createChild("img", {
+                src: ASSETS + "/normal-cursor.svg",
+                alt: "Cursor",
+                class: "default",
+                styles: { 
+                    width: "64px",
+                    transform: "translate(-6px, -14px)"
+                }
+            })
+            this.cursor.createChild("img", {
+                src: ASSETS + "/cursor.svg",
+                alt: "Cursor",
+                class: "pointer",
+                styles: {
+                    width: "64px",
+                    transform: "translate(-23px, -10px)"
+                }
+            });
+
+            window.addEventListener("mousemove", (e) => {
+                this.cursor.style.left = e.clientX + "px";
+                this.cursor.style.top = e.clientY + "px";
+                let cursorMode = e.target.closest(".clickable");
+                if (!cursorMode) {
+                    cursorMode = this.loungeScene.checkPointer(e);
+                }
+            
+                this.cursor.setAttribute("mode", cursorMode ? "pointer" : "default");
+               
+            }, {signal: this.#listeners.signal});
 
             document.body.toggleAttribute("loaded");
             this.keyFoundPrompt.collapsed = true;
