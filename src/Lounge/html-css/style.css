@@ -24,13 +24,6 @@ lounge-scene-game {
 }
 
 
-.clickable {
-    /* cursor: pointer;  */
-}
-.clickable:hover {
-    transform: scale(1.1);
-}
-
 .overlay,
 .background,
 lounge-scene{
@@ -214,13 +207,13 @@ paper-page > div {
    the max sizes are divided by --z because zoom multiplies them too. */
 .image-sizer > div > .sizer,
 paper-page > div > .sizer {
-    --z: 50;
+    /* --z: 50; */
     display: block;
-    zoom: var(--z);
+    /* zoom: var(--z); */
     width: auto;
     height: auto;
-    max-width: calc(100cqw / var(--z));
-    max-height: calc(100cqh / var(--z));
+    max-width: 100cqw;
+    max-height: 100cqh;
 }
 
 paper-page type-writer {
