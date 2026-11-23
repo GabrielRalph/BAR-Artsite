@@ -21,6 +21,7 @@ lounge-scene-game {
 }
 .row > .clickable {
     padding: 1em;
+    font-size: 1.5em;
 }
 
 
@@ -144,6 +145,9 @@ lounge-scene-game[open] .envelope {
 @media (min-aspect-ratio: 16/9) {
     .envelope   { --fg-top: 30%;  --fg-left: -5%; }
     .note-paper { --fg-top: 0%; --fg-left: 110%; }
+    .row .clickable {
+        padding: 0.5em;
+    }
 }
 
 @media (max-aspect-ratio: 7/9) {
@@ -216,6 +220,10 @@ paper-page > div > .sizer {
     max-height: 100cqh;
 }
 
+paper-page > div > .sizer {
+    box-shadow: 3px 3px 15px 7px rgba(0, 0, 0, 0.3);
+}
+
 paper-page type-writer {
     line-height: normal;
     box-sizing: border-box;
@@ -232,6 +240,9 @@ paper-page type-writer {
 paper-page type-writer > * {
     font-size: 4.9cqw;
 }
+paper-page.note type-writer > * {
+    font-size: 4.25cqw;
+}
 
 type-writer p:first-of-type {
     margin-top: 0;
@@ -241,7 +252,7 @@ type-writer p:first-of-type {
     width: 90%;
     transform-origin: top left;
     transform: translate(-5%, -5%) rotate(5deg);
-    padding-bottom: 3em;
+    padding-bottom: 1em;
 }
 lounge-scene-game[note] .note type-writer img {
     animation: image-rotate 0.3s ease-in forwards;
@@ -395,6 +406,7 @@ lounge-scene-game[note] .note type-writer img {
     position: fixed;
     pointer-events: none;
     z-index: 1000;
+    transition: 0.3s ease-in-out opacity;
 }
 .cursor > img {
     position: absolute;

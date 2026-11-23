@@ -1,56 +1,33 @@
-const STYLE = `
-.touch-joystick {
-    position: fixed;
-    width: 120px;
-    height: 120px;
-    margin: -60px 0 0 -60px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.15);
-    border: 2px solid rgba(255, 255, 255, 0.4);
-    pointer-events: none;
-    display: none;
-    z-index: 10;
+import { SvgPlus } from "../SvgPlus/4";
+import JOYSTICK_STYLE from "./style.css?inline"
+
+function supportsConstructedSheets(win = window) {
+    try {
+        new win.CSSStyleSheet();
+        return "adoptedStyleSheets" in win.Document.prototype;
+    } catch (e) {
+        return false;
+    }
 }
-.touch-joystick-knob {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 50px;
-    height: 50px;
-    margin: -25px 0 0 -25px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.6);
+async function newCSSStyleSheet(text) {
+    if (supportsConstructedSheets()) {
+        let style = new CSSStyleSheet()
+        style.replaceSync(text);
+        return style;
+    } else {
+        let style = document.createElement("style")
+        style.innerHTML = text;
+        return style;
+    }
 }
-.touch-jump {
-    position: fixed;
-    right: 24px;
-    bottom: 24px;
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
-    border: 2px solid rgba(255, 255, 255, 0.5);
-    color: white;
-    font: 600 14px system-ui, sans-serif;
-    letter-spacing: 0;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: none;
-    z-index: 10;
-}
-@media (pointer: coarse) {
-    .touch-jump { display: flex; }
-}
-`;
+
+const STYLE_SHEET = await newCSSStyleSheet(JOYSTICK_STYLE);
 
 /**
  * Touch controls: drag on the left half of the screen to move (floating joystick),
  * drag on the right half to look around, and tap the jump button to jump.
  */
-export class TouchControls {
+export class TouchControls extends SvgPlus {
     /** Joystick vector, x = strafe (right +), z = forward/back (back +), each in [-1, 1]. */
     move = { x: 0, z: 0 };
     lookSensitivity = 2.5;
@@ -63,6 +40,7 @@ export class TouchControls {
     #lookCallbacks = [];
     #jumpCallbacks = [];
     #tapCallbacks = [];
+
     /** @type {Map<number, {x: number, y: number, time: number}>} where each touch started */
     #touchStarts = new Map();
 
@@ -78,28 +56,32 @@ export class TouchControls {
 
     /** @param {HTMLElement} element */
     constructor(element) {
+        super("touch-controls");
+        this.styles = {display: "contents"}
+
         this.element = element;
         element.style.touchAction = "none";
 
-        const style = document.createElement("style");
-        style.textContent = STYLE;
-        document.head.appendChild(style);
+        this.attachShadow({mode: "open"});
+        let root = new SvgPlus("div");
+        this.shadowRoot.appendChild(root);
 
-        this.joystick = document.createElement("div");
-        this.joystick.className = "touch-joystick";
-        this.knob = document.createElement("div");
-        this.knob.className = "touch-joystick-knob";
-        this.joystick.appendChild(this.knob);
+        if (STYLE_SHEET instanceof Element) {
+            this.shadowRoot.appendChild(STYLE_SHEET);
+        } else {
+            this.shadowRoot.adoptedStyleSheets = [STYLE_SHEET];
+        }
 
-        this.jumpButton = document.createElement("div");
-        this.jumpButton.className = "touch-jump";
-
-        document.body.append(this.joystick, this.jumpButton);
-
-        this.jumpButton.addEventListener("pointerdown", (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            for (const callback of this.#jumpCallbacks) callback();
+        this.joystick = root.createChild("div", {class: "touch-joystick"});
+        this.knob = this.joystick.createChild("div", {class: "touch-joystick-knob"});
+        this.jumpButton = root.createChild("div", {class: "touch-jump",
+            events: {
+                pointerdown: (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    for (const callback of this.#jumpCallbacks) callback();
+                }
+            }
         });
 
         element.addEventListener("pointerdown", (event) => this.#onDown(event));

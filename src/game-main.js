@@ -28,6 +28,22 @@ class GameMain extends HTMLElement {
     connectedCallback() {
         if (!this.fader.isConnected) this.appendChild(this.fader);
         if (!this.#zone) this.#startAt(GameMain.hashZone);
+        window.addEventListener("popstate", this.#onPopState);
+    }
+
+    disconnectedCallback() {
+        window.removeEventListener("popstate", this.#onPopState);
+    }
+
+    /** Back/forward (or a hand-edited hash): move to the zone in the URL. */
+    #onPopState = () => this.#syncToHash();
+
+    #syncToHash() {
+        if (this.#transitioning) return; // re-checked when the transition ends
+        const zone = GameMain.hashZone;
+        if (zone === this.#zone) return;
+        if (zone === "lab") this.goToLab({ push: false });
+        else this.goToLounge({ push: false });
     }
 
     /** Zone named in the URL hash, or "lounge" if there isn't a valid one. */
@@ -37,17 +53,19 @@ class GameMain extends HTMLElement {
     }
 
     #startAt(zone) {
-        if (zone === "lab") this.goToLab({ fade: false });
-        else this.showLounge();
+        // The first zone replaces the current entry rather than adding one.
+        if (zone === "lab") this.goToLab({ fade: false, push: false });
+        else this.showLounge({ push: false });
     }
 
     /** Name of the zone currently shown ("lounge" | "lab"). */
     get zone() { return this.#zone; }
 
-    showLounge() {
+    /** @param {{push?: boolean}} options push: add a history entry for #lounge. */
+    showLounge({ push = false } = {}) {
         const lounge = document.createElement("lounge-scene-game");
         lounge.addEventListener("explore", () => this.goToLab(), { once: true });
-        this.#setZone("lounge", lounge);
+        this.#setZone("lounge", lounge, push);
 
         // Start fetching the Lab while the player is in the Lounge, so it's
         // usually ready by the time they say "yes".
@@ -70,10 +88,30 @@ class GameMain extends HTMLElement {
     }
 
     /**
-     * @param {{fade?: boolean}} options fade: false when starting straight
-     *   in the Lab (e.g. reloading on #lab), where the loading screen covers it.
+     * Fades back to a fresh Lounge (e.g. pressing back from the Lab).
+     * @param {{push?: boolean}} options push: add a history entry for #lounge.
      */
-    async goToLab({ fade = true } = {}) {
+    async goToLounge({ push = true } = {}) {
+        if (this.#transitioning || this.#zone === "lounge") return;
+        this.#transitioning = true;
+
+        await this.#fade(true);
+        // The Lounge flips body[loaded] on once it's ready, so clear it first.
+        document.body.toggleAttribute("loaded", false);
+        this.showLounge({ push });
+        await this.#fade(false);
+
+        this.#transitioning = false;
+        this.#syncToHash();
+    }
+
+    /**
+     * @param {{fade?: boolean, push?: boolean}} options
+     *   fade: false when starting straight in the Lab (e.g. reloading on
+     *   #lab), where the loading screen covers it.
+     *   push: add a history entry for #lab, so back returns to the Lounge.
+     */
+    async goToLab({ fade = true, push = true } = {}) {
         if (this.#transitioning || this.#zone === "lab") return;
         this.#transitioning = true;
         document.body.toggleAttribute("loaded", false);
@@ -89,25 +127,31 @@ class GameMain extends HTMLElement {
         // Removing the lounge triggers its dispose() (listeners + render loop).
         // Constructed with `new` rather than document.createElement, because
         // the Lab's constructor appends children (which createElement forbids).
-        this.#setZone("lab", new LabGameScene());
+        this.#setZone("lab", new LabGameScene(), push);
 
         // The Lounge normally hides the loading screen; when we skip it, we do.
         document.body.toggleAttribute("loaded", true);
 
         if (fade) await this.#fade(false);
         this.#transitioning = false;
+        this.#syncToHash();
     }
 
-    #setZone(name, element) {
+    /**
+     * @param {boolean} push pushState for a player-driven move (so back
+     *   returns to the previous zone); replaceState for the first zone and
+     *   for moves that came from the history itself (back/forward).
+     */
+    #setZone(name, element, push) {
         this.#current?.remove();
         this.#current = element;
         this.#zone = name;
         this.setAttribute("zone", name);
         this.insertBefore(element, this.fader);
 
-        // replaceState so moving between zones doesn't add history entries
-        // (going "back" into a torn-down zone isn't supported).
-        history.replaceState(history.state, "", `#${name}`);
+        const url = `#${name}`;
+        if (push && location.hash !== url) history.pushState(null, "", url);
+        else history.replaceState(history.state, "", url);
     }
 
     #fade(toBlack) {

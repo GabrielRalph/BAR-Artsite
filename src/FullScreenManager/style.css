@@ -31,13 +31,18 @@ html.fs-scroll.fs-locked .fs-spacer {
     font-size: 18px;
     letter-spacing: 0.04em;
     text-align: center;
-    pointer-events: none; /* swipes pass through to the document */
+    pointer-events: none;
     opacity: 0;
     transition: opacity 0.3s ease-in-out;
 }
 
-html.fs-scroll:not(.fs-locked) .fs-hint { 
-    opacity: 1; 
+/* While shown, the hint takes all input so scenes underneath (e.g. the Lab's
+   touch controls, which use touch-action: none) can't swallow the swipe. The
+   hint itself isn't scrollable, so a vertical pan scrolls the document. */
+html.fs-scroll:not(.fs-locked) .fs-hint {
+    opacity: 1;
+    pointer-events: auto;
+    touch-action: pan-y;
 }
 
 .fs-hint svg {

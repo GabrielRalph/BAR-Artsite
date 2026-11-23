@@ -1,7 +1,7 @@
 import { BasicScene } from "../basic-scene.js";
 import * as THREE from "three";
 import { Keyboard } from "../keyboard.js";
-import { TouchControls } from "../touch-controls.js";
+import { TouchControls } from "../TouchControls/touch-controls.js";
 
 import { LabModel } from "./lab-model.js";
 
@@ -47,11 +47,15 @@ class LabGameScene extends BasicScene {
         this.setupPostProcessing();
         this.build();
 
-        this.crossHair = document.createElement("img");
+        this.crossHair = new Image()
         this.crossHair.src = import.meta.resolve("../../assets/cross-hair.svg");
         this.crossHair.className = "cross-hair";
         this.appendChild(this.crossHair);
+
+        this.appendChild(this.touch);
     }
+
+    
 
     setupPostProcessing() {
         const { width, height } = this.getViewportSize();

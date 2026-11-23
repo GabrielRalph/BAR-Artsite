@@ -62,7 +62,9 @@
             text-align: justify;
             color: rgb(242, 241, 241);
         }
-        body:has(game-main[zone="lab"]) {
+        /* Not while the FullscreenManager needs the document to scroll
+           (html.fs-scroll); it blocks scrolling itself once the bars are gone. */
+        html:not(.fs-scroll) body:has(game-main[zone="lab"]) {
             overflow: hidden;
         }
 

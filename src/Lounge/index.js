@@ -69,6 +69,8 @@ class LoungeSceneGame extends SvgPlus {
 
      /** Aborting this removes the window listeners added in build(). */
     #listeners = new AbortController();
+    #lastTouchTime = 0;
+    #cursorHideTimer = null;
    
     constructor(el) {
         super(el);
@@ -213,6 +215,9 @@ class LoungeSceneGame extends SvgPlus {
             window.addEventListener("touchstart", (event) => {
                 const t = event.touches[0];
                 tapStart = event.touches.length === 1 ? { x: t.clientX, y: t.clientY } : null;
+                // Don't touch the cursor here: iOS treats a tap that makes content
+                // visible as a "hover" and swallows the click (needing a second tap).
+                this.#lastTouchTime = Date.now();
             }, { capture: true, passive: true, signal: this.#listeners.signal });
 
             window.addEventListener("touchend", (event) => {
@@ -310,15 +315,20 @@ class LoungeSceneGame extends SvgPlus {
             });
 
             window.addEventListener("mousemove", (e) => {
-                this.cursor.style.left = e.clientX + "px";
-                this.cursor.style.top = e.clientY + "px";
-                let cursorMode = e.target.closest(".clickable");
-                if (!cursorMode) {
-                    cursorMode = this.loungeScene.checkPointer(e);
-                }
+                this.updateCursorMode(e.clientX, e.clientY, e.target, false);
+            }, {signal: this.#listeners.signal});   
             
-                this.cursor.setAttribute("mode", cursorMode ? "pointer" : "default");
-               
+            window.addEventListener("touchmove", (e) => {
+                const t = e.touches[0];
+                this.#lastTouchTime = Date.now();
+                this.updateCursorMode(t.clientX, t.clientY, e.target, true);
+            }, {signal: this.#listeners.signal});
+
+            // For taps, show the cursor only once the click has been dispatched.
+            window.addEventListener("click", (e) => {
+                if (Date.now() - this.#lastTouchTime > 1000) return;
+                const { clientX, clientY, target } = e;
+                setTimeout(() => this.updateCursorMode(clientX, clientY, target, true), 0);
             }, {signal: this.#listeners.signal});
 
             document.body.toggleAttribute("loaded");
@@ -327,6 +337,24 @@ class LoungeSceneGame extends SvgPlus {
             this.initialPrompt.collapsed = false;
             this.initialPromptMessage.play();
         }
+    }
+
+    updateCursorMode(clientX, clientY, target, isTouch) {
+        if (isTouch) {
+            clearTimeout(this.#cursorHideTimer);
+            this.#cursorHideTimer = setTimeout(() => {
+                this.cursor.style.opacity = "0";
+            }, 2000);
+            this.cursor.style.opacity = "1";
+        }
+
+        let cursorMode = target?.closest?.(".clickable");
+        if (!cursorMode) {
+            cursorMode = this.loungeScene.checkPointer({ clientX, clientY });
+        }
+        this.cursor.style.left = clientX + "px";
+        this.cursor.style.top = clientY + "px";
+        this.cursor.setAttribute("mode", cursorMode ? "pointer" : "default");
     }
 
     /**

@@ -111,7 +111,7 @@ class FullscreenManager {
 
         if (this.barsHidden) {
             this.locked = true;
-        } else if (locked) {
+        } else if (this.locked) {
             this.locked = false;
             window.scrollTo(0, 0);
         }
