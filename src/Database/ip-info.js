@@ -19,6 +19,7 @@ async function getIPInfo(){
         let res = await (await fetch(`https://ipapi.co/json/`)).json();
         if (res.error) {
             console.log(`ipapi.co: ${res.reason}`);
+            info.error = res.reason;
         } else {
             info = {
                 ...info,
@@ -31,6 +32,7 @@ async function getIPInfo(){
         }
     } catch (e) {
         console.log(e);
+        info.error = e.message;
     }
     return info;
 }

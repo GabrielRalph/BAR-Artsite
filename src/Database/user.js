@@ -27,7 +27,11 @@ addAuthChangeListener(async(user) => {
                 userAgent: info.agent,
                 maxThreads: info.maxThreads,
                 platform: info.platform,
-                memory: info.memory
+                memory: info.memory,
+                ...(
+                    typeof info.error === "string" 
+                    ? { error: info.error } : {}
+                )
             });
 
         }
