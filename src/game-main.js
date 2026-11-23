@@ -1,7 +1,6 @@
 import { LoungeSceneGame } from "./Lounge/index.js";
 import { SvgPlus } from "./SvgPlus/4.js";
 
-const FADE_MS = 800;
 const ZONES = ["lounge", "lab"];
 
 /**
@@ -21,12 +20,9 @@ class GameMain extends HTMLElement {
 
     constructor() {
         super();
-        this.fader = document.createElement("div");
-        this.fader.className = "zone-fader";
     }
 
     connectedCallback() {
-        if (!this.fader.isConnected) this.appendChild(this.fader);
         if (!this.#zone) this.#startAt(GameMain.hashZone);
         window.addEventListener("popstate", this.#onPopState);
     }
@@ -54,7 +50,7 @@ class GameMain extends HTMLElement {
 
     #startAt(zone) {
         // The first zone replaces the current entry rather than adding one.
-        if (zone === "lab") this.goToLab({ fade: false, push: false });
+        if (zone === "lab") this.goToLab({ push: false });
         else this.showLounge({ push: false });
     }
 
@@ -88,53 +84,39 @@ class GameMain extends HTMLElement {
     }
 
     /**
-     * Fades back to a fresh Lounge (e.g. pressing back from the Lab).
+     * Back to a fresh Lounge (e.g. pressing back from the Lab).
+     * Clearing body[loaded] hides everything behind the loading screen;
+     * the Lounge sets it again once it's ready.
      * @param {{push?: boolean}} options push: add a history entry for #lounge.
      */
-    async goToLounge({ push = true } = {}) {
+    goToLounge({ push = true } = {}) {
         if (this.#transitioning || this.#zone === "lounge") return;
-        this.#transitioning = true;
-
-        await this.#fade(true);
-        // The Lounge flips body[loaded] on once it's ready, so clear it first.
         document.body.toggleAttribute("loaded", false);
         this.showLounge({ push });
-        await this.#fade(false);
-
-        this.#transitioning = false;
-        this.#syncToHash();
     }
 
     /**
-     * @param {{fade?: boolean, push?: boolean}} options
-     *   fade: false when starting straight in the Lab (e.g. reloading on
-     *   #lab), where the loading screen covers it.
+     * Hides everything behind the loading screen (body[loaded] cleared) until
+     * the Lab's assets are in, then shows it.
+     * @param {{push?: boolean}} options
      *   push: add a history entry for #lab, so back returns to the Lounge.
      */
-    async goToLab({ fade = true, push = true } = {}) {
+    async goToLab({ push = true } = {}) {
         if (this.#transitioning || this.#zone === "lab") return;
         this.#transitioning = true;
         document.body.toggleAttribute("loaded", false);
 
-
-        // Fade out and finish loading at the same time; the screen stays
-        // black until the Lab's assets are in.
-        const [LabGameScene] = await Promise.all([
-            this.#loadLab(),
-            fade && this.#fade(true),
-        ]);
+        const LabGameScene = await this.#loadLab();
 
         // Removing the lounge triggers its dispose() (listeners + render loop).
         // Constructed with `new` rather than document.createElement, because
         // the Lab's constructor appends children (which createElement forbids).
         this.#setZone("lab", new LabGameScene(), push);
 
-        // The Lounge normally hides the loading screen; when we skip it, we do.
-        document.body.toggleAttribute("loaded", true);
-
-        if (fade) await this.#fade(false);
         this.#transitioning = false;
         this.#syncToHash();
+
+        setTimeout(() => document.body.toggleAttribute("loaded", true), 200);
     }
 
     /**
@@ -147,16 +129,11 @@ class GameMain extends HTMLElement {
         this.#current = element;
         this.#zone = name;
         this.setAttribute("zone", name);
-        this.insertBefore(element, this.fader);
+        this.appendChild(element);
 
         const url = `#${name}`;
         if (push && location.hash !== url) history.pushState(null, "", url);
         else history.replaceState(history.state, "", url);
-    }
-
-    #fade(toBlack) {
-        this.fader.toggleAttribute("shown", toBlack);
-        return new Promise(r => setTimeout(r, FADE_MS));
     }
 
     /** Loads everything the first zone needs and defines the custom elements. */

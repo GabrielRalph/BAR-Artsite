@@ -155,7 +155,7 @@ class LabModel extends Asset {
 
     setupWindowView() {
         const view = new TextureLoader().load(
-            import.meta.resolve('../../assets/env2.jpg')
+            import.meta.resolve('../../assets/Lab/window-env.jpg')
         )
         view.mapping = EquirectangularReflectionMapping; //EquirectangularRefractionMapping; 
         view.colorSpace = SRGBColorSpace
@@ -199,7 +199,7 @@ class LabModel extends Asset {
 
 
     static get url() {
-        return import.meta.resolve('../../assets/lab-scene-h.glb');
+        return import.meta.resolve('../../assets/Lab/lab-scene-h.glb');
     }
 }
 

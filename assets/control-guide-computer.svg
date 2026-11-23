@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 800 450">
+  <!-- Generator: Adobe Illustrator 31.0.0, SVG Export Plug-In . SVG Version: 2.1.5 Build 84)  -->
+  <g>
+    <path d="M96.7,136.8h29.9c40.4,0,73.1,32.7,73.1,73.1v109.6c0,48.6-39.5,88.1-88.1,88.1h0c-48.6,0-88.1-39.5-88.1-88.1v-109.6C23.5,169.5,56.3,136.8,96.7,136.8Z" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+    <path d="M199.7,225.7c-24.8,18.2-55.2,28.9-88.1,28.9s-63.3-10.7-88.1-28.9" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+    <rect x="97.1" y="166.8" width="29.1" height="54.9" rx="14.5" ry="14.5" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+    <path d="M111.6,166.8v-48.1c0-47.4-51.5-8-51.5-76.3" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+    <line x1="111.6" y1="221.6" x2="111.6" y2="254.6" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+  </g>
+  <g>
+    <rect x="494.7" y="98.7" width="99" height="111.6" rx="14.8" ry="14.8" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+    <g>
+      <line x1="545.4" y1="178.2" x2="545.4" y2="132.5" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+      <polyline points="563.7 149.9 545.4 132.5 527 149.9" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+    </g>
+    <rect x="494.7" y="239.7" width="99" height="111.6" rx="14.8" ry="14.8" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+    <g>
+      <line x1="545.4" y1="271.8" x2="545.4" y2="317.5" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+      <polyline points="527 300.1 545.4 317.5 563.7 300.1" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+    </g>
+    <rect x="367.3" y="239.7" width="99" height="111.6" rx="14.8" ry="14.8" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+    <g>
+      <line x1="441.6" y1="295.5" x2="395.9" y2="295.5" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+      <polyline points="413.3 277.2 395.9 295.5 413.3 313.8" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+    </g>
+    <rect x="624.5" y="239.7" width="99" height="111.6" rx="14.8" ry="14.8" transform="translate(1347.8984 591.0078) rotate(-180)" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+    <g>
+      <line x1="649.1" y1="295.5" x2="694.8" y2="295.5" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+      <polyline points="677.4 277.2 694.8 295.5 677.4 313.8" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+    </g>
+    <polyline points="521.8 31.4 532.9 69.3 544.2 38.8 553 69 566.6 34" style="fill: none; opacity: .6; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+    <g style="opacity: .6;">
+      <polyline points="308 314.5 318.6 280.3 326.5 276.6 338.8 314.4" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+      <line x1="314.8" y1="305" x2="332.1" y2="305" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+    </g>
+    <path d="M555.7,383.3c-16.6-9.2-33.7,8.3-14.2,16,25,9.8,12.2,24.2-6.8,17.6" style="fill: none; opacity: .6; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+    <path d="M754.2,276.8v37.6s21.1.6,22.2-20.4S754.2,276.8,754.2,276.8Z" style="fill: none; opacity: .6; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+  </g>
+</svg>

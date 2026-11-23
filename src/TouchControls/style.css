@@ -43,6 +43,18 @@
     z-index: 10;
 }
 
+.touch-jump::after {
+    background-color: white;
+    mask-image: url(../../assets/jump-icon.svg);
+    display: inline-block;
+    width: 70%;
+    height: 70%;
+    mask-position: center;
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    content: " ";
+}
+
 @media (pointer: coarse) {
     .touch-jump { display: flex; }
 }

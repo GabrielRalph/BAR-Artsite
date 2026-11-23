@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 800 450">
+  <!-- Generator: Adobe Illustrator 31.0.0, SVG Export Plug-In . SVG Version: 2.1.5 Build 84)  -->
+  <rect x="43.9" y="43.1" width="721.5" height="363.9" rx="48.1" ry="48.1" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+  <circle cx="618.4" cy="308.1" r="68.9" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+  <circle cx="190.8" cy="308.1" r="68.9" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+  <path d="M642.1,340.2l-4-1.5c-5.5-2.2-6.5-8.8-11.3-12.1,7.4-10.1,10.4-16.1,9.6-20.7-1.1-5.8-7.5-8.6-12.8-22.9,0,.9,9.7,4,11.7,3.4-.2,4.4,3.5,10,4.4,16.1.1,1.2-1.1,2.7-.9,3.7.6,3.1-.1,5.2,3.1,4.4,2.8-.8,1-3.7.4-7.8-.4-2.8.4-17.4-3-20.9-2.9-2.9-8.6-2.2-20.4-8-2.9-1.5-5.2,1.5-6.5-.9s-.7-3.9-2.4-7.4-4.7-4.4-7.9-3.1c-3.1,1.2-4,5.1-2.3,8.8s-.9,2.4,1.1,3.2,1,3,4.1,3,1.5-.2,2.2-.4c1.5,3.6-1.5,5,.1,8.2,2.6,5.3,6.7,7.7,8.7,10.1.8,1,1.8,3.1,2.6,5.4-2.7,1.7-21.8,13.4-20.6,12.6,1.2-.7-4.7,2.6-4.7,5.2s1.1,3.5,2.6,4.2c1.6.6,12.3,4.8,14.7,5.9,4.3,1.9,6.4,9.8,6.4,9.8l2.3-.6v-5.3c-.1,0,0-2.2,0-2.2,4.5,3.6,13.9,11.2,15.8,12.9,3.4,3.2,3.8,10.3,3.8,10.3l.8.7,2.9-2.1.6-10.3C643.3,341.1,642.8,340.4,642.1,340.2ZM605.4,319l14.5-5-1.5,7.9-1.2,4.9-1.9-1.2L605.4,319Z"/>
+  <path d="M717.2,43.1v363.8h0c26.6,0,48.1-21.5,48.1-48.1V91.2c0-26.6-21.5-48.1-48.1-48.1H717.2Z" style="stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+  <path d="M92,43.1v363.8s0,0,0,0c-26.6,0-48.1-21.5-48.1-48.1V91.2c0-26.6,21.5-48.1,48.1-48.1H92Z" style="stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+  <circle cx="228.6" cy="285.5" r="27"/>
+  <g style="opacity: .5;">
+    <g>
+      <line x1="404.6" y1="43.1" x2="404.6" y2="58.1" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+      <line x1="404.6" y1="88.4" x2="404.6" y2="376.8" style="fill: none; stroke: #000; stroke-dasharray: 30.4 30.4; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+      <line x1="404.6" y1="391.9" x2="404.6" y2="406.9" style="fill: none; stroke: #000; stroke-linecap: round; stroke-linejoin: round; stroke-width: 14px;"/>
+    </g>
+  </g>
+</svg>

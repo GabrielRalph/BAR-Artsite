@@ -317,7 +317,7 @@ class LoungeSceneGame extends SvgPlus {
             window.addEventListener("mousemove", (e) => {
                 this.updateCursorMode(e.clientX, e.clientY, e.target, false);
             }, {signal: this.#listeners.signal});   
-            
+
             window.addEventListener("touchmove", (e) => {
                 const t = e.touches[0];
                 this.#lastTouchTime = Date.now();
@@ -331,7 +331,7 @@ class LoungeSceneGame extends SvgPlus {
                 setTimeout(() => this.updateCursorMode(clientX, clientY, target, true), 0);
             }, {signal: this.#listeners.signal});
 
-            document.body.toggleAttribute("loaded");
+            document.body.toggleAttribute("loaded", true);
             this.keyFoundPrompt.collapsed = true;
             this.finalPrompt.collapsed = true;
             this.initialPrompt.collapsed = false;
@@ -340,12 +340,12 @@ class LoungeSceneGame extends SvgPlus {
     }
 
     updateCursorMode(clientX, clientY, target, isTouch) {
+        this.cursor.style.opacity = "1";
         if (isTouch) {
             clearTimeout(this.#cursorHideTimer);
             this.#cursorHideTimer = setTimeout(() => {
                 this.cursor.style.opacity = "0";
             }, 2000);
-            this.cursor.style.opacity = "1";
         }
 
         let cursorMode = target?.closest?.(".clickable");
