@@ -69,6 +69,7 @@ class LoungeSceneGame extends SvgPlus {
 
      /** Aborting this removes the window listeners added in build(). */
     #listeners = new AbortController();
+    
     #lastTouchTime = 0;
     #cursorHideTimer = null;
    
