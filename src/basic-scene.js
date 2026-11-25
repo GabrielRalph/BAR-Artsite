@@ -2,7 +2,9 @@ import * as THREE from "three"
 
 export class BasicScene extends HTMLElement {
     #rendering = false;
+    #buildCompleted = false;
     #updateAbles = [];
+
 
     constructor(scene) {
         super();
@@ -56,6 +58,10 @@ export class BasicScene extends HTMLElement {
 
     connectedCallback() {
         this.appendChild(this.renderer.domElement);
+        if (!this.#buildCompleted && this.buildElement instanceof Function) {
+            this.buildElement();
+            this.#buildCompleted = true;
+        }
         this.startRenderingLoop();
     }
 

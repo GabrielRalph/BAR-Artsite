@@ -1,7 +1,7 @@
 export class Keyboard {
     #keys = new Map();
     #callbackMap = new Map();
-    // timeout = 10000;
+    #listeners = new AbortController();
     constructor() {
         // this.keys = new Set(); 
         window.addEventListener('keydown', (event) => {
@@ -12,15 +12,10 @@ export class Keyboard {
                     callback();
                 }
             }
-            // setTimeout(() => {
-            //     if (this.#keys.get(event.key) === now) {
-            //         this.#keys.delete(event.key);
-            //     }
-            // }, this.timeout);
-        }); 
+        }, {signal: this.#listeners.signal}); 
         window.addEventListener('keyup', (event) => { 
             this.#keys.delete(event.key); 
-        }); 
+        }, {signal: this.#listeners.signal}); 
     } 
 
     onKeyDown(key, callback) {
@@ -34,4 +29,16 @@ export class Keyboard {
     }
 
     isDown(code) { return this.#keys.has(code); } 
+
+    /**
+     * @param {string[]} codes - An array of key codes to check if any are currently pressed.
+     */
+    areAnyDown(codes) {
+        return codes.some(code => this.isDown(code));
+    }
+
+
+    disconnect() {
+        this.#listeners.abort();
+    }
 }

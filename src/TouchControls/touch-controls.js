@@ -53,14 +53,14 @@ export class TouchControls extends SvgPlus {
     tapTime = 400;
     tapDistance = 20;
     #lookDragging = false;
+    
+    #listeners = new AbortController();
 
     /** @param {HTMLElement} element */
     constructor(element) {
         super("touch-controls");
         this.styles = {display: "contents"}
 
-        this.element = element;
-        element.style.touchAction = "none";
 
         this.attachShadow({mode: "open"});
         let root = new SvgPlus("div");
@@ -84,10 +84,42 @@ export class TouchControls extends SvgPlus {
             }
         });
 
-        element.addEventListener("pointerdown", (event) => this.#onDown(event));
-        element.addEventListener("pointermove", (event) => this.#onMove(event));
-        element.addEventListener("pointerup", (event) => this.#onUp(event));
-        element.addEventListener("pointercancel", (event) => this.#onUp(event));
+        if (element) this.connect(element);
+    }
+
+    connect(element) {
+        if (this.element !== null) {
+            this.disconnect();
+        }
+
+        this.element = element;
+        element.style.touchAction = "none";
+
+        element.addEventListener(
+            "pointerdown", 
+            (event) => this.#onDown(event), 
+            {signal: this.#listeners.signal}
+        );
+        element.addEventListener(
+            "pointermove", 
+            (event) => this.#onMove(event),
+            {signal: this.#listeners.signal}
+        );
+        element.addEventListener(
+            "pointerup", 
+            (event) => this.#onUp(event),
+            {signal: this.#listeners.signal}
+        );
+        element.addEventListener(
+            "pointercancel", 
+            (event) => this.#onUp(event),
+            {signal: this.#listeners.signal}
+        );
+    }
+
+    disconnect() {
+        this.#listeners.abort();
+        this.element = null;
     }
 
     onLook(callback) {

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Borrowed Blue</title>
+    <meta name = "robots" content="noindex, nofollow">
+    <link rel="icon" type="image/png" href="./assets/favicon.png">
+    <link rel="stylesheet" href="./assets/Fonts/fonts.css">
+    <style>
+        body {
+            font-family: 'providence-sans';
+        }
+
+        /* ---------- Loading screen (the Lounge sets body[loaded]) ---------- */
+        body:not([loaded]) * {
+            display: none !important;
+        }
+
+        body:after {
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.3s ease-in-out opacity;
+            position: fixed;
+            inset: 0;
+            content: " ";
+            background-image: linear-gradient(#4f5ccf, #191619);
+            z-index: 9999;
+        }
+
+        body:not([loaded])::after {
+            opacity: 1;
+        }
+
+
+        game-main {
+            position: fixed;
+            inset: 0;
+        }
+        game-main canvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+
+        .cross-hair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            transform: translate(-50%, -50%);
+            z-index: 10000;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+    <game-main></game-main>
+</body>
+
+<script type="module">
+    import { EntranceScene } from "./index.js";
+    await EntranceScene.load();
+    customElements.define('game-main', EntranceScene);
+    document.body.toggleAttribute('loaded', true);
+</script>
+</html>
